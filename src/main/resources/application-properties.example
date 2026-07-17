@@ -1,0 +1,20 @@
+# ===============================
+# DATABASE
+# ===============================
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/NOME_DO_BANCO}
+spring.datasource.username=${DB_USERNAME:USUARIO}
+spring.datasource.password=${DB_PASSWORD:SENHA}
+
+# ===============================
+# JPA / HIBERNATE
+# ===============================
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+
+# ===============================
+# JWT
+# ===============================
+api.security.token.secret=${JWT_SECRET:COLOQUE_UM_SECRET_AQUI}
+api.security.token.expiration=${JWT_EXPIRATION:86400000}
