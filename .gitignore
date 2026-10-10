@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.catalog-acceptance.example
 
 # Java/Maven build output
 backend/target/
@@ -24,4 +25,6 @@ logs/
 docker-data/
 backend/data/
 backend/target/test-catalog-images/
+acceptance-data/
+acceptance-logs/
 Docs/execucoes/logs/

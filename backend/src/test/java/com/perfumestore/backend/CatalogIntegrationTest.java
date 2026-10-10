@@ -165,6 +165,98 @@ class CatalogIntegrationTest {
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_SORT"));
     }
 
+    @Test
+    void rejectsInvalidPresentationScaleAndStaleVersion() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        JsonNode category = json(mockMvc.perform(post("/api/v1/admin/categories")
+                .with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Categoria escala %s\",\"slug\":\"escala-%s\",\"active\":true}"
+                        .formatted(suffix, suffix)))
+                .andExpect(status().isCreated()).andReturn());
+        JsonNode product = json(mockMvc.perform(post("/api/v1/admin/products")
+                .with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Produto escala %s\",\"brand\":\"Marca Teste\",\"description\":\"Produto de validação.\",\"categoryId\":\"%s\",\"slug\":\"produto-escala-%s\",\"active\":false}"
+                        .formatted(suffix, category.get("id").asText(), suffix)))
+                .andExpect(status().isCreated()).andReturn());
+        String productId = product.get("id").asText();
+
+        mockMvc.perform(post("/api/v1/admin/products/{id}/presentations", productId)
+                .with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sku\":\"SCALE-%s\",\"volume\":50,\"price\":199.999,\"active\":true}"
+                        .formatted(suffix)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+        JsonNode presentation = json(mockMvc.perform(post("/api/v1/admin/products/{id}/presentations", productId)
+                .with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sku\":\"VALID-%s\",\"volume\":50,\"price\":199.90,\"active\":true}"
+                        .formatted(suffix)))
+                .andExpect(status().isCreated()).andReturn());
+        String presentationId = presentation.get("id").asText();
+        mockMvc.perform(patch("/api/v1/admin/products/{productId}/presentations/{presentationId}", productId,
+                presentationId).with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sku\":\"VALID-%s\",\"volume\":50,\"price\":209.90,\"active\":true,\"version\":0}"
+                        .formatted(suffix)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
+        mockMvc.perform(patch("/api/v1/admin/products/{productId}/presentations/{presentationId}", productId,
+                presentationId).with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sku\":\"VALID-%s\",\"volume\":50,\"price\":219.90,\"active\":true,\"version\":0}"
+                        .formatted(suffix)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONCURRENT_UPDATE"));
+    }
+
+    @Test
+    void deactivatingCategoryHidesPublishedProductWithoutChangingProductState() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        JsonNode category = json(mockMvc.perform(post("/api/v1/admin/categories")
+                .with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Categoria estado %s\",\"slug\":\"estado-%s\",\"active\":true}"
+                        .formatted(suffix, suffix)))
+                .andExpect(status().isCreated()).andReturn());
+        String categoryId = category.get("id").asText();
+        JsonNode product = json(mockMvc.perform(post("/api/v1/admin/products")
+                .with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Produto estado %s\",\"brand\":\"Marca Teste\",\"description\":\"Produto publicado de teste.\",\"categoryId\":\"%s\",\"slug\":\"produto-estado-%s\",\"active\":false}"
+                        .formatted(suffix, categoryId, suffix)))
+                .andExpect(status().isCreated()).andReturn());
+        String productId = product.get("id").asText();
+        mockMvc.perform(post("/api/v1/admin/products/{id}/presentations", productId)
+                .with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sku\":\"ESTADO-%s\",\"volume\":50,\"price\":199.90,\"active\":true}"
+                        .formatted(suffix)))
+                .andExpect(status().isCreated());
+        MockMultipartFile image = new MockMultipartFile("file", "state.png", MediaType.IMAGE_PNG_VALUE,
+                pngBytes(8, 8));
+        mockMvc.perform(multipart("/api/v1/admin/products/{id}/images", productId).file(image)
+                .param("altText", "Imagem de estado").with(user("admin").roles("ADMIN")).with(csrf()))
+                .andExpect(status().isCreated());
+        mockMvc.perform(put("/api/v1/admin/products/{id}/status", productId)
+                .with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"active\":true,\"version\":0}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/v1/admin/categories/{id}", categoryId)
+                .with(user("admin").roles("ADMIN")).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Categoria estado %s\",\"slug\":\"estado-%s\",\"active\":false,\"version\":0}"
+                        .formatted(suffix, suffix)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.active").value(false));
+        mockMvc.perform(get("/api/v1/catalog/products/produto-estado-" + suffix))
+                .andExpect(status().isNotFound());
+        assertThat(jdbcTemplate.queryForObject("select active from perfumestore.products where id = ?",
+                Boolean.class, UUID.fromString(productId))).isTrue();
+    }
+
     private JsonNode json(MvcResult result) throws Exception {
         return objectMapper.readTree(result.getResponse().getContentAsString());
     }

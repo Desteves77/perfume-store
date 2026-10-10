@@ -2,7 +2,7 @@
 
 ## Fase atual
 
-Fase 4 — catálogo, categorias, apresentações e imagens.
+Fase 4.1 — homologação isolada do catálogo.
 
 ## Entregas produzidas
 
@@ -139,3 +139,32 @@ Fase 3 concluída quanto ao escopo local de autenticação, usuários, sessão e
 ### Próxima etapa
 
 Fase 4 do roadmap, sem início automático nesta entrega.
+
+## Atualização — Fase 4.1
+
+### Entregas e ambiente
+
+- Homologação HTTP concluída em ambiente isolado criado pelo projeto Compose `perfumestore-catalog-acceptance`.
+- PostgreSQL próprio em `127.0.0.1:56000`, volume próprio, Mailpit em `11025/18025`, aplicação em `18080` e imagens em `acceptance-data/catalog-images`.
+- ADMIN sintético provisionado pelo mecanismo dedicado da aplicação; segunda execução retornou código `0` e manteve exatamente um ADMIN. O processo dedicado encerrou e não deixou a porta HTTP aberta.
+- Smoke administrativo e público executado com sessão real, CSRF real e sessões HTTP separadas para ADMIN, CUSTOMER e anônimo.
+- PostgreSQL e aplicação reiniciados sem remoção do volume; dados, estados, ordem, imagem principal e checksums foram preservados.
+- Dois testes focados foram adicionados ao `CatalogIntegrationTest` para escala/concorrência otimista e desativação de categoria.
+
+### Evidências
+
+- Smoke HTTP: criação de categoria, produto, apresentações, duas imagens, publicação, busca, filtro, detalhe, preço, desativação de apresentação, ordem/imagem principal, permissões, CSRF e ocultação de produto inativo aprovados.
+- Flyway no ambiente isolado: baseline, V1, V2 e V3 com `success=true`; reinicialização informou schema atualizado sem reaplicação.
+- `CatalogIntegrationTest`: 6 testes, 0 falhas, 0 erros, 0 ignorados.
+- `clean verify`: 33 testes, 0 falhas, 0 erros, 0 ignorados; JAR executável gerado.
+- Registros detalhados: `Docs/execucoes/FASE_04_1_RELATORIO.md`, `FASE_04_1_COMANDOS.md` e `FASE_04_1_TESTES.md`.
+
+### Limitações e situação
+
+O storage local e a política atual de acesso foram homologados. Storage durável/CDN, limpeza operacional de arquivos órfãos e URLs finais de produção continuam pendentes. Estoque, disponibilidade, carrinho, checkout, pedidos e frontend permanecem fora desta fase.
+
+A Fase 4 está fechada quanto ao escopo de catálogo local e sua homologação isolada. A conclusão não marca o sistema como pronto para produção e não inicia a Fase 5.
+
+### Próxima etapa
+
+Fase 5 do roadmap, sem início automático nesta entrega.

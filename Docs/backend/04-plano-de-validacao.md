@@ -59,6 +59,21 @@ Este documento define cenários para as fases de implementação. Não há teste
 | VAL-040 | OpenAPI, health e Flyway | documentação e health disponíveis no perfil test; PostgreSQL real aplica V1 | teste de integração com Testcontainers | 1 e 2 |
 
 Os testes automatizados foram executados com `ApiContractIntegrationTest` (12 testes, sem falhas após o ajuste da expectativa de origem CORS) e `InfrastructureIntegrationTest` (2 testes). A verificação de produção confirmou a configuração de OpenAPI desabilitada por arquivo de perfil; não houve deploy nem execução em ambiente externo.
+
+## Evidências executadas na Fase 4.1
+
+| ID | Regra verificada | Resultado observado | Tipo de verificação | Fase |
+|---|---|---|---|---|
+| VAL-060 | Ambiente isolado e provisionamento ADMIN | Compose próprio, volume próprio, ADMIN sintético criado e reexecução idempotente; processo dedicado encerrou | verificação operacional e PostgreSQL | 4.1 |
+| VAL-061 | Fluxo HTTP administrativo do catálogo | categoria, produto, duas apresentações, duas imagens, imagem principal, reordenação e publicação aprovados | smoke HTTP com sessão ADMIN e CSRF | 4.1 |
+| VAL-062 | Catálogo público | busca, filtro, detalhe, volumes, preços, imagens e ausência de estoque/disponibilidade fictícios aprovados | smoke HTTP anônimo | 4.1 |
+| VAL-063 | Permissões e CSRF | anônimo `401`, CUSTOMER `403` em mutações administrativas e mutação sem CSRF `403` | smoke HTTP com sessões separadas | 4.1 |
+| VAL-064 | Desativação e acesso a arquivos | apresentação inativa foi ocultada; produto inativo e imagem pública retornaram `404`; preview ADMIN respondeu `200` | smoke HTTP | 4.1 |
+| VAL-065 | Persistência após reinicialização | produto, preços, estados, ordem, imagem principal e checksums permaneceram; Flyway V1–V3 validou sem reaplicar | reinicialização de PostgreSQL/aplicação | 4.1 |
+| VAL-066 | Escala e concorrência otimista | escala monetária inválida retornou `422`; versão obsoleta retornou `409 CONCURRENT_UPDATE` | integração MockMvc com PostgreSQL | 4.1 |
+| VAL-067 | Categoria inativa | produto permaneceu ativo no banco, mas ficou fora do catálogo público | integração MockMvc com PostgreSQL | 4.1 |
+
+O smoke usou somente dados sintéticos. Os cenários de upload inválido, MIME incompatível, ordenação não permitida, limite de imagens e validações complementares continuam cobertos pela suíte automatizada e pela revisão do código da Fase 4; a matriz detalhada da homologação está em `Docs/execucoes/FASE_04_1_TESTES.md`.
 ## Evidências executadas na Fase 4
 
 | ID | Regra verificada | Resultado observado | Tipo de verificação | Fase |

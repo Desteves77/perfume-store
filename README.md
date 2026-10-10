@@ -37,7 +37,7 @@ compose.yaml
 .github/workflows/backend-ci.yml
 ```
 
-Os packages de domínio estão preparados, mas ainda não contêm controllers, entidades, repositories ou regras comerciais. Essas classes serão materializadas nas fases correspondentes.
+Os packages de domínio organizam a implementação por contexto. Auth e catálogo já possuem suas classes da fase atual; estoque, carrinho, pedidos, pagamentos e demais módulos serão materializados nas fases correspondentes.
 
 Os componentes compartilhados de API já implementam o contrato de erros, correlação, paginação, ordenação permitida e serialização de dinheiro. Os controllers usados para exercitar esses contratos existem somente em `src/test/java` e não são publicados pela aplicação.
 
@@ -176,9 +176,9 @@ java -jar target\perfumestore-backend-0.0.1-SNAPSHOT.jar --spring.profiles.activ
 
 Os contratos comerciais continuam especificados em `Docs/backend/02-contratos-api.md`; somente os endpoints técnicos efetivamente implementados nesta fase são publicados.
 
-## Limites desta fase
+## Limites históricos da Fase 2
 
-Ainda não existem cadastro, login, autenticação persistida, recuperação de senha, usuários, catálogo, estoque, carrinho, frete, pedidos, pagamentos, notificações comerciais ou endpoints de negócio. A aplicação tem apenas a base de segurança e o endpoint técnico de CSRF. Os roadmaps e a especificação da Fase 0 continuam sendo a referência para as próximas fases.
+Este trecho registra o estado anterior à implementação das Fases 3 e 4. Cadastro, login, autenticação persistida, recuperação de senha e catálogo foram implementados nas fases correspondentes; estoque, carrinho, frete, pedidos, pagamentos e notificações comerciais continuam fora do escopo atual. Os roadmaps e a especificação da Fase 0 continuam sendo a referência para as próximas fases.
 ## Fase 3 — autenticação e recuperação
 
 A base implementada inclui cadastro de clientes, login/logout, sessões opacas persistidas no PostgreSQL, consulta/atualização limitada do perfil, recuperação de senha e provisionamento controlado do primeiro administrador. Os endpoints comerciais de catálogo, carrinho, pedido e pagamento continuam fora desta fase.
@@ -248,4 +248,33 @@ O processo dedicado não abre servidor HTTP. A operação é idempotente para o 
 
 O timeout de inatividade da sessão e o TTL do token de recuperação têm padrão de 30 minutos. Os limites padrão são login 5 por minuto, recuperação 5 por 15 minutos, redefinição 5 por 15 minutos e cadastro 10 por 10 minutos. O limitador é local à instância; múltiplas réplicas exigirão mecanismo compartilhado antes de produção.
 
-O provedor de e-mail real, MFA, verificação de e-mail, troca de e-mail/senha, frontend, catálogo, pedidos, pagamentos e deploy não foram implementados. O workflow CI existe, mas seu resultado no GitHub depende de execução por push ou pull request.
+O provedor de e-mail real, MFA, verificação de e-mail, troca de e-mail/senha, frontend, estoque, pedidos, pagamentos e deploy não foram implementados. O workflow CI existe, mas seu resultado no GitHub depende de execução por push ou pull request.
+
+### Homologação isolada do catálogo — Fase 4.1
+
+A homologação local usa `compose.catalog-acceptance.yaml`, separado do `compose.yaml` de desenvolvimento. O ambiente possui PostgreSQL, volume, portas, credenciais sintéticas e diretório de imagens próprios. O arquivo `.env.catalog-acceptance` real é ignorado pelo Git; somente `.env.catalog-acceptance.example` é versionado.
+
+Prepare o arquivo local com valores sintéticos fornecidos fora do repositório e confirme que as portas escolhidas não estão ocupadas:
+
+```powershell
+Copy-Item .env.catalog-acceptance.example .env.catalog-acceptance
+# Edite .env.catalog-acceptance sem registrar os valores em histórico ou logs.
+docker compose -p perfumestore-catalog-acceptance -f compose.catalog-acceptance.yaml --env-file .env.catalog-acceptance config --quiet
+docker compose -p perfumestore-catalog-acceptance -f compose.catalog-acceptance.yaml --env-file .env.catalog-acceptance up -d postgres mailpit
+```
+
+O exemplo usa PostgreSQL em `127.0.0.1:56000`, SMTP em `127.0.0.1:11025`, Mailpit em `http://127.0.0.1:18025` e a aplicação em `127.0.0.1:18080`. Antes de iniciar a aplicação, carregue as variáveis do arquivo para a sessão do processo Java; o Spring Boot não carrega arquivos `.env` automaticamente. No provisionamento dedicado, defina `ADMIN_PROVISIONING_ENABLED=true`, forneça as demais variáveis `ADMIN_PROVISIONING_*` somente pela sessão e use `SERVER_PORT=0`:
+
+```powershell
+Get-Content .env.catalog-acceptance | Where-Object { $_ -and -not $_.StartsWith('#') } | ForEach-Object {
+    $name, $value = $_ -split '=', 2
+    Set-Item -Path "Env:$name" -Value $value
+}
+$env:SERVER_PORT = '0'
+Set-Location backend
+.\mvnw.cmd --batch-mode spring-boot:run '-Dspring-boot.run.profiles=local,provision-admin'
+```
+
+O processo dedicado encerra depois de criar ou reconhecer o ADMIN sintético. Para iniciar a aplicação, desative `ADMIN_PROVISIONING_ENABLED`, use `SERVER_PORT=18080` e execute `spring-boot:run` com o perfil `local`. O smoke HTTP e a reinicialização usados na homologação estão registrados em `Docs/execucoes/FASE_04_1_*.md`; os logs longos locais ficam em `Docs/execucoes/logs/`.
+
+Para parar somente os containers da homologação e preservar o volume, use `docker compose ... stop`. Para remover futuramente somente esse ambiente, depois de confirmar a decisão, use o mesmo projeto Compose com `down` sem afetar o `compose.yaml`, remova o volume nomeado do projeto e então o diretório `acceptance-data`; não use comandos globais de limpeza. O storage local foi validado, mas ainda não é um storage durável de produção.
