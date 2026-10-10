@@ -27,6 +27,7 @@ public final class ApiErrorResponses {
             case 405 -> "Método não permitido";
             case 415 -> "Tipo de mídia não suportado";
             case 422 -> "Dados inválidos";
+            case 429 -> "Muitas tentativas";
             default -> status >= 500 ? "Erro interno" : "Erro na requisição";
         };
     }

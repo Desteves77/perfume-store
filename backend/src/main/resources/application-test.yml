@@ -7,6 +7,11 @@ spring:
 
 server:
   port: 0
+  servlet:
+    session:
+      cookie:
+        secure: false
+        same-site: Lax
 
 app:
   cors:
@@ -16,3 +21,5 @@ app:
     csrf:
       cookie-secure: false
       cookie-same-site: Lax
+  password-recovery:
+    frontend-base-url: http://frontend.test/reset-password

@@ -36,7 +36,7 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ApiRequestException.class)
     ResponseEntity<ApiErrorResponse> handleApiRequest(ApiRequestException exception, HttpServletRequest request) {
         return response(request, exception.status(), exception.code(), exception.title(), exception.getMessage(),
-                exception.fieldErrors());
+                exception.fieldErrors(), exception.retryAfterSeconds());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -118,12 +118,20 @@ public class ApiExceptionHandler {
 
     private ResponseEntity<ApiErrorResponse> response(HttpServletRequest request, int status, String code,
             String title, String message, List<FieldErrorResponse> fieldErrors) {
+        return response(request, status, code, title, message, fieldErrors, null);
+    }
+
+    private ResponseEntity<ApiErrorResponse> response(HttpServletRequest request, int status, String code,
+            String title, String message, List<FieldErrorResponse> fieldErrors, Long retryAfterSeconds) {
         ApiErrorResponse body = ApiErrorResponses.create(request, status, code, title, message, fieldErrors);
-        return ResponseEntity.status(status)
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .header(CorrelationIdFilter.HEADER_NAME, body.correlationId())
-                .header("Cache-Control", "no-store")
-                .body(body);
+                .header("Cache-Control", "no-store");
+        if (retryAfterSeconds != null) {
+            builder.header("Retry-After", String.valueOf(retryAfterSeconds));
+        }
+        return builder.body(body);
     }
 
     private FieldErrorResponse toFieldError(FieldError error) {

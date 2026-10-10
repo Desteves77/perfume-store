@@ -89,3 +89,21 @@ Não foi encontrado conflito relevante entre os dois roadmaps e o escopo desta f
 - O Actuator continua limitado a health, sem detalhes públicos de componentes, ambiente ou configuração.
 
 Essas decisões estabelecem a infraestrutura de contratos e segurança. Elas não antecipam cadastro, sessão persistida, recuperação de senha ou qualquer regra comercial.
+## 8. Decisões técnicas registradas na Fase 3
+
+- Sessões comerciais usam Spring Session JDBC com o schema oficial gerenciado pela migration V2. A aplicação usa timeout de inatividade padrão de 30 minutos, limpeza periódica, cookie `SESSION` HttpOnly e `Secure` obrigatório em produção. A escolha evita JWT/Redis nesta topologia de monólito e permite revogação direta.
+- Login usa `DaoAuthenticationProvider`, BCrypt com custo 12 e `ChangeSessionIdAuthenticationStrategy`. O controller salva explicitamente o `SecurityContext` no repositório configurado, pois o fluxo de autenticação é implementado em controller próprio.
+- A política de senha é de 12 a 72 caracteres e no máximo 72 bytes UTF-8, sem trim ou normalização silenciosa. E-mails são trimados e normalizados com `Locale.ROOT`; não há transformações específicas de provedores.
+- Cadastro é público, cria somente `CUSTOMER` e não faz login automático. O primeiro ADMIN é provisionado por runner dedicado e desabilitado por padrão; é idempotente, não promove CUSTOMER e não redefine senha existente.
+- Recuperação usa 32 bytes aleatórios, persiste apenas SHA-256 do token, expira em 30 minutos e consome atomicamente. Redefinir senha invalida sessões e tokens ativos e exige novo login. A URL usa somente o frontend configurado, nunca o `Host` da requisição.
+- Desenvolvimento usa Mailpit via SMTP local e testes usam capturador em memória. Falha de envio deixa a resposta genérica e remove o token criado; e-mail de produção continua pendente de provedor transacional.
+- O limitador de tentativas é local à instância, com limite de login 5/minuto, recuperação 5/15 minutos, redefinição 5/15 minutos e cadastro 10/10 minutos. A resposta é `429` com `Retry-After`. Antes de múltiplas instâncias ou proxy, será necessário armazenamento distribuído e configuração confiável de encaminhamento.
+
+As referências oficiais usadas para a integração são [Spring Session JDBC](https://docs.spring.io/spring-session/reference/guides/java-jdbc.html), [integração HTTP do Spring Session](https://docs.spring.io/spring-session/reference/http-session.html), [persistência de SecurityContext](https://docs.spring.io/spring-security/reference/servlet/authentication/persistence.html) e [gerenciamento de sessão do Spring Security](https://docs.spring.io/spring-security/reference/7.0/servlet/authentication/session-management.html).
+
+## 9. Pendências após a Fase 3
+
+- Escolher provedor transacional real, domínio/remetente e política de retry antes da operação; não bloqueia a Fase 4, mas bloqueia homologação real de recuperação.
+- Confirmar topologia de domínios e HTTPS para ajustar `SameSite`, `Secure`, CORS e CSRF; não bloqueia desenvolvimento local.
+- Definir armazenamento e retenção de auditoria, MFA e procedimento operacional de desabilitação de administradores; não bloqueia o catálogo inicial.
+- Substituir o limitador em memória por mecanismo compartilhado antes de escalar horizontalmente; bloqueia a prontidão de produção, não a Fase 4.

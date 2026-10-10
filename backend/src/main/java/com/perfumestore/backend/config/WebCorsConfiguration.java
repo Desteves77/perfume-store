@@ -8,7 +8,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
-@EnableConfigurationProperties({ CorsProperties.class, CsrfCookieProperties.class })
+@EnableConfigurationProperties({ CorsProperties.class, CsrfCookieProperties.class, RateLimitProperties.class,
+        PasswordRecoveryProperties.class, SessionCookieProperties.class, AdminProvisioningProperties.class })
 public class WebCorsConfiguration {
 
     @Bean

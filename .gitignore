@@ -22,4 +22,4 @@ Thumbs.db
 *.log
 logs/
 docker-data/
-
+Docs/execucoes/logs/

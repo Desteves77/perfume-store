@@ -8,6 +8,7 @@ public class ApiRequestException extends RuntimeException {
     private final String code;
     private final String title;
     private final List<FieldErrorResponse> fieldErrors;
+    private final Long retryAfterSeconds;
 
     public ApiRequestException(int status, String code, String message) {
         this(status, code, ApiErrorResponses.titleFor(status), message, List.of());
@@ -15,11 +16,17 @@ public class ApiRequestException extends RuntimeException {
 
     public ApiRequestException(int status, String code, String title, String message,
             List<FieldErrorResponse> fieldErrors) {
+        this(status, code, title, message, fieldErrors, null);
+    }
+
+    public ApiRequestException(int status, String code, String title, String message,
+            List<FieldErrorResponse> fieldErrors, Long retryAfterSeconds) {
         super(message);
         this.status = status;
         this.code = code;
         this.title = title;
         this.fieldErrors = fieldErrors == null ? List.of() : List.copyOf(fieldErrors);
+        this.retryAfterSeconds = retryAfterSeconds;
     }
 
     public int status() {
@@ -36,5 +43,9 @@ public class ApiRequestException extends RuntimeException {
 
     public List<FieldErrorResponse> fieldErrors() {
         return fieldErrors;
+    }
+
+    public Long retryAfterSeconds() {
+        return retryAfterSeconds;
     }
 }

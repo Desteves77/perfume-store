@@ -2,7 +2,7 @@
 
 ## Fase atual
 
-Fase 2 — padrões da API e base de segurança.
+Fase 3 — autenticação, usuários e recuperação de acesso.
 
 ## Entregas produzidas
 
@@ -55,7 +55,7 @@ Os logs observados não exibiram senhas, tokens ou cookies. O workflow de CI foi
 
 ## Pendências e limitações
 
-Não foram implementados cadastro, login, autenticação persistida, recuperação de senha, usuários, catálogo, estoque comercial, carrinho, frete, pedidos, pagamentos, notificações ou endpoints de negócio. A base de segurança da Fase 2 existe, mas a autenticação efetiva pertence à Fase 3. As pendências comerciais e de serviços externos continuam classificadas em `backend/03-decisoes-e-pendencias.md`.
+Catálogo, estoque comercial, carrinho, frete, pedidos, pagamentos e notificações comerciais ainda não foram implementados. Cadastro, login, autenticação persistida, perfil e recuperação pertencem à entrega atual. As pendências comerciais e de serviços externos continuam classificadas em `Docs/backend/03-decisoes-e-pendencias.md`.
 
 O ambiente local possui Java 8 no `PATH` de `java`, embora o JDK 17 esteja disponível em `C:\Program Files\Zulu\zulu-17`; o README documenta a correção por sessão. A identidade efetiva usada no commit foi `Davi Esteves <davi00eteves@gmail.com>`; nenhuma identidade global foi alterada.
 
@@ -69,7 +69,7 @@ Implementação e verificação local concluídas. A conclusão refere-se aos pa
 
 ## Próxima etapa
 
-Iniciar a Fase 3 para implementar cadastro, login e sessões persistidas, usando esta base de segurança e os contratos compartilhados como referência. A Fase 3 não foi iniciada automaticamente.
+Iniciar a Fase 4 para implementar catálogo, categorias e apresentações, usando a autenticação e os contratos compartilhados como referência. A Fase 4 não foi iniciada automaticamente.
 
 ## Evidências da revisão
 
@@ -78,3 +78,34 @@ Iniciar a Fase 3 para implementar cadastro, login e sessões persistidas, usando
 - Não havia `AGENTS.md` nem implementação anterior; os documentos existentes foram mantidos.
 - O diff da Fase 2 deve ficar restrito aos padrões compartilhados, configuração de segurança, testes de contrato e documentação correspondente; a V1 e os módulos comerciais permanecem inalterados.
 - Commit local criado com a mensagem solicitada; o hash é informado no relatório da entrega.
+## Atualização — Fase 3
+
+### Entregas
+
+- Migration V2 incremental com usuários, tokens de recuperação e tabelas oficiais do Spring Session JDBC.
+- Cadastro CUSTOMER, login, logout, sessão persistida, rotação de identificador, CSRF renovado e consulta/atualização limitada do perfil.
+- Recuperação de senha com token aleatório de uso único, hash persistido, expiração, consumo atômico, invalidação de sessões e e-mail local/teste.
+- Provisionamento ADMIN dedicado, desabilitado por padrão, idempotente e sem endpoint público.
+- Limitação configurável de tentativas com `429` e `Retry-After`.
+- Mailpit no Compose local e perfil `provision-admin` sem servidor web.
+- Testes PostgreSQL reais, testes de concorrência e smoke HTTP documentados nos três arquivos de `Docs/execucoes/`.
+
+### Evidências
+
+- `AuthenticationIntegrationTest`: 10 testes aprovados.
+- `AdminProvisioningIntegrationTest`: 2 testes aprovados.
+- `SessionPersistenceIntegrationTest`: 1 teste aprovado com HTTP real e sessão JDBC.
+- Regressão da Fase 1/2 preservada; `clean verify` terminou com 27 testes, 0 falhas, 0 erros e JAR executável; smoke local registrou `200/201/200/200/200/204/401/202/204/401/200` na sequência documentada.
+- Logs brutos sanitizáveis permanecem em `Docs/execucoes/logs/`, ignorados pelo Git.
+
+### Limitações e pendências
+
+Mailpit é exclusivo do desenvolvimento. Provedor de e-mail, topologia HTTPS/domínios, MFA, verificação de e-mail e rate limiting distribuído continuam pendentes. O limitador em memória não é suficiente para múltiplas instâncias. Catálogo e demais fases comerciais não foram iniciados.
+
+### Situação
+
+Fase 3 concluída quanto ao escopo local de autenticação, usuários, sessão e recuperação, condicionada às verificações registradas. A conclusão da especificação/implementação não marca o produto como pronto para produção.
+
+### Próxima etapa
+
+Fase 4 do roadmap, sem início automático nesta entrega.

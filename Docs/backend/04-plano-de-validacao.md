@@ -59,3 +59,20 @@ Este documento define cenários para as fases de implementação. Não há teste
 | VAL-040 | OpenAPI, health e Flyway | documentação e health disponíveis no perfil test; PostgreSQL real aplica V1 | teste de integração com Testcontainers | 1 e 2 |
 
 Os testes automatizados foram executados com `ApiContractIntegrationTest` (12 testes, sem falhas após o ajuste da expectativa de origem CORS) e `InfrastructureIntegrationTest` (2 testes). A verificação de produção confirmou a configuração de OpenAPI desabilitada por arquivo de perfil; não houve deploy nem execução em ambiente externo.
+## Evidências executadas na Fase 3
+
+| ID | Regra verificada | Resultado observado | Tipo de verificação | Fase |
+|---|---|---|---|---|
+| VAL-041 | Cadastro e papel | cadastro válido retorna `201`, hash não aparece, papel é `CUSTOMER` mesmo com tentativa de `ADMIN` | MockMvc + PostgreSQL Testcontainers | 3 |
+| VAL-042 | E-mail duplicado e normalizado | e-mail normalizado viola unicidade e retorna `409 EMAIL_ALREADY_REGISTERED` | MockMvc + restrição PostgreSQL | 3 |
+| VAL-043 | Login e permissão | credencial inválida é genérica; CUSTOMER não acessa fixture ADMIN; perfil só altera nome | MockMvc/Spring Security | 3 |
+| VAL-044 | Sessão persistida e rotação | cookie muda no login, sessão existe em `spring_session`, requisição HTTP seguinte acessa `/auth/me` | HTTP real + PostgreSQL Testcontainers | 3 |
+| VAL-045 | Logout | sessão e contexto são revogados; cookie antigo não acessa recurso privado; logout repetido é seguro | MockMvc e HTTP real | 3 |
+| VAL-046 | Recuperação genérica | e-mail desconhecido e falha do SMTP retornam `202` sem indicar existência | MockMvc + capturador de e-mail | 3 |
+| VAL-047 | Token de recuperação | apenas hash fica no banco; token válido é de uso único; expirado/reutilizado é rejeitado | MockMvc + PostgreSQL | 3 |
+| VAL-048 | Concorrência de redefinição | duas utilizações simultâneas do mesmo token produzem somente um sucesso | chamadas concorrentes + PostgreSQL | 3 |
+| VAL-049 | Invalidação de senha | senha antiga falha, nova senha funciona e sessões anteriores são removidas | HTTP real + PostgreSQL | 3 |
+| VAL-050 | Rate limit | excesso de login retorna `429` e `Retry-After`, sem bloqueio permanente da conta | MockMvc | 3 |
+| VAL-051 | Provisionamento ADMIN | runner dedicado cria ADMIN sem senha fixa, é idempotente e não promove CUSTOMER | Spring Boot + PostgreSQL | 3 |
+
+Os comandos, quantidades e relatórios de teste desta execução estão registrados em `Docs/execucoes/FASE_03_TESTES.md`. O smoke com Mailpit deve ser registrado nessa mesma evidência após a execução local.

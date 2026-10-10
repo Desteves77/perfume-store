@@ -5,9 +5,19 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
       maximum-pool-size: ${DB_POOL_MAX_SIZE:5}
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    properties:
+      mail.smtp.auth: false
 
 server:
   port: ${SERVER_PORT:8080}
+  servlet:
+    session:
+      cookie:
+        secure: ${SESSION_COOKIE_SECURE:false}
+        same-site: ${SESSION_COOKIE_SAME_SITE:Lax}
 
 app:
   cors:
@@ -17,3 +27,5 @@ app:
     csrf:
       cookie-secure: ${CSRF_COOKIE_SECURE:false}
       cookie-same-site: ${CSRF_COOKIE_SAME_SITE:Lax}
+  password-recovery:
+    frontend-base-url: ${FRONTEND_PASSWORD_RESET_URL:http://localhost:3000/reset-password}

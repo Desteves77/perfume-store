@@ -9,8 +9,18 @@ spring:
     create-schemas: true
     validate-on-migrate: true
     clean-disabled: true
+  session:
+    timeout: ${SESSION_TIMEOUT:30m}
+    jdbc:
+      initialize-schema: never
+      table-name: SPRING_SESSION
+      cleanup-cron: "0 * * * * *"
   jackson:
     time-zone: UTC
+
+  datasource:
+    hikari:
+      schema: perfumestore
 
 springdoc:
   api-docs:
@@ -20,6 +30,13 @@ springdoc:
 
 server:
   shutdown: graceful
+  servlet:
+    session:
+      cookie:
+        name: SESSION
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:false}
+        same-site: ${SESSION_COOKIE_SAME_SITE:Lax}
 
 management:
   endpoints:
@@ -30,3 +47,29 @@ management:
     health:
       show-details: never
       show-components: never
+
+app:
+  security:
+    session-cookie:
+      secure: ${SESSION_COOKIE_SECURE:false}
+      same-site: ${SESSION_COOKIE_SAME_SITE:Lax}
+    password-reset:
+      token-ttl: ${PASSWORD_RESET_TOKEN_TTL:30m}
+    rate-limit:
+      login-max-attempts: ${LOGIN_RATE_LIMIT_MAX:5}
+      login-window: ${LOGIN_RATE_LIMIT_WINDOW:1m}
+      recovery-max-attempts: ${RECOVERY_RATE_LIMIT_MAX:5}
+      recovery-window: ${RECOVERY_RATE_LIMIT_WINDOW:15m}
+      reset-max-attempts: ${RESET_RATE_LIMIT_MAX:5}
+      reset-window: ${RESET_RATE_LIMIT_WINDOW:15m}
+      register-max-attempts: ${REGISTER_RATE_LIMIT_MAX:10}
+      register-window: ${REGISTER_RATE_LIMIT_WINDOW:10m}
+  password-recovery:
+    frontend-base-url: ${FRONTEND_PASSWORD_RESET_URL}
+    sender-address: ${MAIL_FROM:no-reply@perfumestore.local}
+  admin:
+    provisioning:
+      enabled: ${ADMIN_PROVISIONING_ENABLED:false}
+      name: ${ADMIN_PROVISIONING_NAME:}
+      email: ${ADMIN_PROVISIONING_EMAIL:}
+      password: ${ADMIN_PROVISIONING_PASSWORD:}

@@ -1,6 +1,6 @@
 # PerfumeStore
 
-Base do backend do PerfumeStore. Esta entrega implementa as Fases 1 e 2 do roadmap: aplicação Spring Boot executável, PostgreSQL local, Flyway, padrões de API, validação, erros, paginação, OpenAPI e base de segurança pronta para a autenticação por sessão da Fase 3.
+Base do backend do PerfumeStore. Esta entrega implementa as Fases 1, 2 e 3 do roadmap: aplicação Spring Boot executável, PostgreSQL local, Flyway, padrões de API, validação, erros, paginação, OpenAPI, segurança, autenticação por sessão e recuperação de acesso.
 
 ## Versões fixadas
 
@@ -179,3 +179,54 @@ Os contratos comerciais continuam especificados em `Docs/backend/02-contratos-ap
 ## Limites desta fase
 
 Ainda não existem cadastro, login, autenticação persistida, recuperação de senha, usuários, catálogo, estoque, carrinho, frete, pedidos, pagamentos, notificações comerciais ou endpoints de negócio. A aplicação tem apenas a base de segurança e o endpoint técnico de CSRF. Os roadmaps e a especificação da Fase 0 continuam sendo a referência para as próximas fases.
+## Fase 3 — autenticação e recuperação
+
+A base implementada inclui cadastro de clientes, login/logout, sessões opacas persistidas no PostgreSQL, consulta/atualização limitada do perfil, recuperação de senha e provisionamento controlado do primeiro administrador. Os endpoints comerciais de catálogo, carrinho, pedido e pagamento continuam fora desta fase.
+
+### Mailpit local
+
+Com as variáveis do `.env` carregadas para o processo Docker, inicie o PostgreSQL e o capturador SMTP sem remover volumes:
+
+```powershell
+docker compose up -d postgres mailpit
+Start-Process http://localhost:8025
+```
+
+O Mailpit usa SMTP em `localhost:1025` e interface em `http://localhost:8025`, somente para desenvolvimento. Nenhuma mensagem é enviada a destinatários reais.
+
+### Sessão e CSRF
+
+O cliente chama `GET /api/v1/security/csrf`, guarda o cookie `XSRF-TOKEN` e envia seu valor no header `X-XSRF-TOKEN` em `POST`, `PATCH` e demais métodos que alteram estado, sempre com `credentials: include`. A sessão autenticada usa o cookie HttpOnly `SESSION`; seu valor não deve ser lido pelo JavaScript nem aparecer em logs. O login gera/rotaciona a sessão e o logout a revoga. Após logout ou redefinição de senha, o cliente deve obter novo CSRF antes de uma operação seguinte.
+
+### Executar autenticação local
+
+Carregue `.env` para a sessão do PowerShell e mantenha `SPRING_PROFILES_ACTIVE=local`. Depois do banco/Mailpit:
+
+```powershell
+Set-Location backend
+.\mvnw.cmd --batch-mode clean verify
+.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+O fluxo manual usa os endpoints `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `GET/PATCH /api/v1/auth/me`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/password-recovery-requests` e `POST /api/v1/auth/password-resets`. A resposta de recuperação é genérica e o token só pode ser obtido no e-mail capturado pelo Mailpit.
+
+### Provisionar o primeiro ADMIN
+
+O provisionamento não possui endpoint público e não ocorre em startup normal. Forneça as quatro variáveis `ADMIN_PROVISIONING_*` apenas na sessão atual do processo e execute o perfil dedicado:
+
+```powershell
+$env:ADMIN_PROVISIONING_ENABLED = 'true'
+$env:ADMIN_PROVISIONING_NAME = '<nome fornecido fora do repositório>'
+$env:ADMIN_PROVISIONING_EMAIL = '<e-mail fornecido fora do repositório>'
+$env:ADMIN_PROVISIONING_PASSWORD = '<senha fornecida fora do repositório>'
+.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=local,provision-admin
+Remove-Item Env:ADMIN_PROVISIONING_ENABLED,Env:ADMIN_PROVISIONING_NAME,Env:ADMIN_PROVISIONING_EMAIL,Env:ADMIN_PROVISIONING_PASSWORD
+```
+
+O processo dedicado não abre servidor HTTP. A operação é idempotente para o mesmo administrador, não promove um `CUSTOMER` e não redefine a senha de administrador existente. Nunca coloque valores reais no `.env.example`, no histórico do shell ou em logs.
+
+### Parâmetros e limites da Fase 3
+
+O timeout de inatividade da sessão e o TTL do token de recuperação têm padrão de 30 minutos. Os limites padrão são login 5 por minuto, recuperação 5 por 15 minutos, redefinição 5 por 15 minutos e cadastro 10 por 10 minutos. O limitador é local à instância; múltiplas réplicas exigirão mecanismo compartilhado antes de produção.
+
+O provedor de e-mail real, MFA, verificação de e-mail, troca de e-mail/senha, frontend, catálogo, pedidos, pagamentos e deploy não foram implementados. O workflow CI existe, mas seu resultado no GitHub depende de execução por push ou pull request.

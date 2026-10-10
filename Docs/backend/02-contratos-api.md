@@ -323,3 +323,42 @@ Resposta:
 ## 8. Integração segura com o frontend
 
 O frontend deve enviar cookies de sessão e CSRF conforme a topologia, tratar `401`, `403`, `409`, `422` e `429` sem duplicar regras e preservar a chave de idempotência durante retries da mesma operação. Não deve fazer retry automático em `POST /orders` ou início de pagamento sem consultar o resultado. Campos como `allowedActions`, `canCheckout` e `issues` são informativos para a interface; a autorização final continua no backend.
+## 9. Endpoints implementados na Fase 3
+
+Os endpoints abaixo são a primeira parte executável dos contratos de autenticação. Eles usam a sessão opaca `SESSION`, continuam sujeitos ao CSRF para métodos que alteram estado e retornam `Cache-Control: no-store` em respostas privadas.
+
+| Método e caminho | Acesso | Resultado principal | Status relevantes |
+|---|---|---|---|
+| `POST /api/v1/auth/register` | público | cria cliente; aceita `name`, `email`, `password`; o papel é atribuído pelo servidor | `201`, `409`, `422`, `429` |
+| `POST /api/v1/auth/login` | público | autentica e grava o contexto em sessão JDBC; devolve usuário sem dados sensíveis | `200`, `401`, `429` |
+| `POST /api/v1/auth/logout` | público/cliente | invalida sessão e tokens CSRF; repetir é seguro | `204`, `403` se CSRF for exigido e inválido |
+| `GET /api/v1/auth/me` | cliente | consulta o usuário associado à sessão | `200`, `401` |
+| `PATCH /api/v1/auth/me` | cliente | atualiza somente `name` | `200`, `401`, `422` |
+| `POST /api/v1/auth/password-recovery-requests` | público | inicia recuperação com resposta genérica | `202`, `422`, `429` |
+| `POST /api/v1/auth/password-resets` | público | consome token de uso único e exige novo login | `204`, `400`, `422`, `429` |
+
+O cadastro não autentica automaticamente. O campo `role` não pertence ao DTO de entrada; mesmo que seja enviado, o servidor cria `CUSTOMER`. A recuperação sempre responde a mesma mensagem para e-mail inexistente, existente ou falha de envio. O token só aparece no e-mail local/serviço de notificação e nunca no corpo da API ou nos logs.
+
+Exemplo de resposta de cadastro/login:
+
+```json
+{
+  "id": "0f7c5c9a-3e1a-4a4a-9c02-3f5f4c7e5a11",
+  "name": "Cliente",
+  "email": "cliente@example.test",
+  "role": "CUSTOMER",
+  "createdAt": "2026-10-10T12:00:00Z"
+}
+```
+
+Exemplo de recuperação:
+
+```json
+{
+  "message": "Se o e-mail estiver cadastrado, enviaremos instruções para recuperar o acesso."
+}
+```
+
+O provisionamento do primeiro ADMIN não possui endpoint HTTP. Ele é executado por processo dedicado, com perfil `provision-admin`, variáveis externas e `spring.main.web-application-type=none`.
+
+Os endpoints de catálogo, endereços, carrinho, pedidos e administração comercial continuam planejados no contrato original e não são apresentados como implementados.

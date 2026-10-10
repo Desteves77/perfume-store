@@ -153,3 +153,10 @@ Topologia assumida: frontend Next.js e API sob o mesmo domínio registrável, po
 Recuperação usa token aleatório de uso único, armazenado como hash, expirado rapidamente, invalidado ao usar e sem aparecer em logs. Respostas públicas não confirmam se o e-mail existe. Login, recuperação, webhook e endpoints sensíveis têm limitação de tentativas e auditoria sem segredos.
 
 O primeiro administrador é criado por procedimento controlado de ambiente/migration/CLI com credencial fornecida fora do código, ou por convite administrativo único. Cadastro público nunca aceita `role`. Logs não incluem senha, cookie, token, URL completa de recuperação, cartão, payload sensível ou segredo de provedor; usam identificador de correlação.
+## 7. Materialização da identidade na Fase 3
+
+A implementação da Fase 3 materializa `app_users` e `password_reset_tokens` na migration `V2__create_identity_and_session_tables.sql`. O e-mail normalizado é minúsculo com `Locale.ROOT`, preserva a forma apresentada ao cliente e possui unicidade no banco. A senha fica somente como hash BCrypt; o cadastro público sempre atribui `CUSTOMER`.
+
+As sessões usam Spring Session JDBC, com as tabelas oficiais `spring_session` e `spring_session_attributes` no schema `perfumestore`, criadas e versionadas pelo Flyway. O cookie opaco `SESSION` é `HttpOnly`, usa `SameSite` configurável e é `Secure` em produção. O contexto de segurança é persistido pelo repositório JDBC; o logout remove a sessão e a redefinição de senha remove todas as sessões cujo principal é o UUID do usuário. Não há JWT, Redis ou tabela proprietária paralela de sessão.
+
+O schema das tabelas de Spring Session não é inicializado automaticamente pela biblioteca: `spring.session.jdbc.initialize-schema=never` e a migration V2 são a única fonte de evolução. A expiração por inatividade é configurável, com padrão local de 30 minutos, e a limpeza é executada por cron do repositório JDBC.
