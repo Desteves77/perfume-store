@@ -59,6 +59,21 @@ Este documento define cenários para as fases de implementação. Não há teste
 | VAL-040 | OpenAPI, health e Flyway | documentação e health disponíveis no perfil test; PostgreSQL real aplica V1 | teste de integração com Testcontainers | 1 e 2 |
 
 Os testes automatizados foram executados com `ApiContractIntegrationTest` (12 testes, sem falhas após o ajuste da expectativa de origem CORS) e `InfrastructureIntegrationTest` (2 testes). A verificação de produção confirmou a configuração de OpenAPI desabilitada por arquivo de perfil; não houve deploy nem execução em ambiente externo.
+## Evidências executadas na Fase 4
+
+| ID | Regra verificada | Resultado observado | Tipo de verificação | Fase |
+|---|---|---|---|---|
+| VAL-052 | CUSTOMER sem administração | `/api/v1/admin/categories` retorna `403 FORBIDDEN` | MockMvc/Spring Security + PostgreSQL | 4 |
+| VAL-053 | Migration de catálogo sem estoque | V3 aplica quatro tabelas de catálogo; não cria `stock`, `carts` ou `orders` | integração PostgreSQL/Testcontainers | 4 |
+| VAL-054 | Publicação e ocultação | produto só fica público com categoria ativa, apresentação ativa e imagem principal; produto inativo retorna `404` | MockMvc + PostgreSQL | 4 |
+| VAL-055 | Busca e ordenação | busca por nome não diferencia maiúsculas/minúsculas; ordenação fora da whitelist retorna `400 INVALID_SORT` | MockMvc | 4 |
+| VAL-056 | Preço e SKU | preço é serializado como `199.90`/`BRL`; SKU duplicado e escala inválida são rejeitados pelo contrato/banco | MockMvc + PostgreSQL | 4 |
+| VAL-057 | Upload raster | arquivo PNG com MIME JPEG é rejeitado; extensão/nome não define o caminho armazenado | MockMvc + storage local | 4 |
+| VAL-058 | Imagem principal | primeiro upload vira principal; metadados públicos não expõem caminho físico | MockMvc + PostgreSQL | 4 |
+| VAL-059 | Concorrência otimista | atualização com `version` antiga retorna `409 CONCURRENT_UPDATE` | integração JDBC/MockMvc | 4 |
+
+O teste `CatalogIntegrationTest` foi executado com PostgreSQL 18.6 real via Testcontainers: 4 testes, 0 falhas, 0 erros e 0 ignorados. A suíte completa posterior deve confirmar a regressão das fases anteriores e o artefato executável.
+
 ## Evidências executadas na Fase 3
 
 | ID | Regra verificada | Resultado observado | Tipo de verificação | Fase |

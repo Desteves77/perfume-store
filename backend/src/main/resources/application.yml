@@ -1,6 +1,10 @@
 spring:
   application:
     name: perfumestore-backend
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -49,6 +53,12 @@ management:
       show-components: never
 
 app:
+  catalog:
+    images:
+      storage-root: ${CATALOG_IMAGE_STORAGE_ROOT:./data/catalog-images}
+      max-bytes: ${CATALOG_IMAGE_MAX_BYTES:5242880}
+      max-images-per-product: ${CATALOG_IMAGE_MAX_IMAGES:8}
+      max-pixels: ${CATALOG_IMAGE_MAX_PIXELS:20000000}
   security:
     session-cookie:
       secure: ${SESSION_COOKIE_SECURE:false}

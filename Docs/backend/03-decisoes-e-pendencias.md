@@ -101,7 +101,24 @@ Essas decisões estabelecem a infraestrutura de contratos e segurança. Elas nã
 
 As referências oficiais usadas para a integração são [Spring Session JDBC](https://docs.spring.io/spring-session/reference/guides/java-jdbc.html), [integração HTTP do Spring Session](https://docs.spring.io/spring-session/reference/http-session.html), [persistência de SecurityContext](https://docs.spring.io/spring-security/reference/servlet/authentication/persistence.html) e [gerenciamento de sessão do Spring Security](https://docs.spring.io/spring-security/reference/7.0/servlet/authentication/session-management.html).
 
-## 9. Pendências após a Fase 3
+## 9. Decisões técnicas registradas na Fase 4
+
+- O catálogo usa as tabelas incrementais da V3; a V1 e a V2 permanecem imutáveis. Chaves estrangeiras usam `RESTRICT` para não apagar histórico futuro por cascata.
+- Categoria, produto, apresentação e imagem são conceitos separados. Produto e apresentação têm versões para atualização otimista; SKU normalizado é único globalmente e preço é `numeric(12,2)` em BRL.
+- Publicação é uma condição derivada: produto e categoria ativos, pelo menos uma apresentação ativa e exatamente uma imagem principal ativa. Categoria desativada oculta os produtos publicados sem reescrever o estado do produto.
+- A administração é uma superfície dos domínios sob `/api/v1/admin/**` com `hasRole('ADMIN')`; não foi criado módulo paralelo de regras nem endpoint público de manutenção.
+- O adaptador local de imagens implementa `ImageStorage`, gera UUIDs de arquivo, valida path por contenção do diretório e aceita PNG/JPEG decodificáveis. O arquivo é removido quando a transação de metadados falha; remoção administrativa é lógica e mantém a referência para reconciliação/limpeza posterior.
+- A resposta pública expõe preço e apresentação, mas não inventa estoque ou disponibilidade. Estoque, reservas e comprabilidade pertencem à Fase 5 em diante.
+- Imagens publicadas podem ser acessadas publicamente por URL controlada; imagens de produtos não publicados somente pelo preview administrativo autorizado. Nenhum caminho físico ou nome original vira URL.
+
+## 10. Pendências após a Fase 4
+
+- Provedor de armazenamento durável/CDN e política de domínio/cache para produção: não bloqueia a implementação local; bloqueia a operação de imagens fora de uma única instância.
+- Regras finais de publicação e conteúdo comercial, incluindo eventual categoria múltipla, revisão editorial e auditoria: não bloqueiam a Fase 5, mas exigem decisão antes da homologação comercial.
+- Rotina operacional de reconciliação de arquivos órfãos e retenção de imagens removidas: não bloqueia o MVP local; bloqueia a manutenção de produção em escala.
+- A tabela de estoque e a representação de disponibilidade continuam reservadas à Fase 5; nenhum valor fictício foi adicionado ao catálogo.
+
+## 11. Pendências após a Fase 3
 
 - Escolher provedor transacional real, domínio/remetente e política de retry antes da operação; não bloqueia a Fase 4, mas bloqueia homologação real de recuperação.
 - Confirmar topologia de domínios e HTTPS para ajustar `SameSite`, `Secure`, CORS e CSRF; não bloqueia desenvolvimento local.

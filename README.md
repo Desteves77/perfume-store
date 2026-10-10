@@ -183,6 +183,24 @@ Ainda não existem cadastro, login, autenticação persistida, recuperação de 
 
 A base implementada inclui cadastro de clientes, login/logout, sessões opacas persistidas no PostgreSQL, consulta/atualização limitada do perfil, recuperação de senha e provisionamento controlado do primeiro administrador. Os endpoints comerciais de catálogo, carrinho, pedido e pagamento continuam fora desta fase.
 
+## Fase 4 — catálogo local
+
+A Fase 4 adiciona categorias, produtos, apresentações e imagens. A publicação pública exige produto ativo, categoria ativa, ao menos uma apresentação ativa e exatamente uma imagem principal ativa. Desativar uma categoria oculta seus produtos sem alterar o estado persistido do produto.
+
+Os endpoints públicos do catálogo são `GET /api/v1/catalog/categories`, `GET /api/v1/catalog/products`, `GET /api/v1/catalog/products/{slug}`, `GET /api/v1/catalog/products/{slug}/presentations`, `GET /api/v1/catalog/products/{slug}/images` e o conteúdo da imagem em `/content`. A administração fica sob `/api/v1/admin/**` e exige `ADMIN`, CSRF e sessão autenticada.
+
+O armazenamento local usa `CATALOG_IMAGE_STORAGE_ROOT`, por padrão `backend/data/catalog-images`, fora do classpath e ignorado pelo Git. São aceitos PNG e JPEG decodificáveis, até 5 MiB, 8 imagens ativas por produto e 20 milhões de pixels. O servidor gera as chaves dos arquivos e não expõe caminhos físicos. Imagens removidas logicamente mantêm o metadado para recuperação; a limpeza física deve ser feita por rotina operacional futura, depois de reconciliar referências.
+
+O catálogo não informa estoque ou disponibilidade comprável nesta fase. A migration `V3__create_catalog_tables.sql` não cria tabelas de estoque, carrinho ou pedidos. Para executar os testes do catálogo com PostgreSQL real:
+
+```powershell
+Set-Location backend
+.\mvnw.cmd --batch-mode -Dtest=CatalogIntegrationTest test
+.\mvnw.cmd --batch-mode clean verify
+```
+
+O perfil `prod` exige `CATALOG_IMAGE_STORAGE_ROOT` e mantém OpenAPI desabilitado; o adaptador local é apropriado somente para desenvolvimento e testes. O armazenamento durável/CDN e a política de URLs de produção continuam pendentes.
+
 ### Mailpit local
 
 Com as variáveis do `.env` carregadas para o processo Docker, inicie o PostgreSQL e o capturador SMTP sem remover volumes:
@@ -216,11 +234,12 @@ O provisionamento não possui endpoint público e não ocorre em startup normal.
 
 ```powershell
 $env:ADMIN_PROVISIONING_ENABLED = 'true'
+$env:SERVER_PORT = '0'
 $env:ADMIN_PROVISIONING_NAME = '<nome fornecido fora do repositório>'
 $env:ADMIN_PROVISIONING_EMAIL = '<e-mail fornecido fora do repositório>'
 $env:ADMIN_PROVISIONING_PASSWORD = '<senha fornecida fora do repositório>'
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=local,provision-admin
-Remove-Item Env:ADMIN_PROVISIONING_ENABLED,Env:ADMIN_PROVISIONING_NAME,Env:ADMIN_PROVISIONING_EMAIL,Env:ADMIN_PROVISIONING_PASSWORD
+Remove-Item Env:ADMIN_PROVISIONING_ENABLED,Env:ADMIN_PROVISIONING_NAME,Env:ADMIN_PROVISIONING_EMAIL,Env:ADMIN_PROVISIONING_PASSWORD,Env:SERVER_PORT
 ```
 
 O processo dedicado não abre servidor HTTP. A operação é idempotente para o mesmo administrador, não promove um `CUSTOMER` e não redefine a senha de administrador existente. Nunca coloque valores reais no `.env.example`, no histórico do shell ou em logs.

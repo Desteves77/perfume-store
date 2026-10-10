@@ -2,7 +2,7 @@
 
 ## Fase atual
 
-Fase 3 — autenticação, usuários e recuperação de acesso.
+Fase 4 — catálogo, categorias, apresentações e imagens.
 
 ## Entregas produzidas
 
@@ -70,6 +70,36 @@ Implementação e verificação local concluídas. A conclusão refere-se aos pa
 ## Próxima etapa
 
 Iniciar a Fase 4 para implementar catálogo, categorias e apresentações, usando a autenticação e os contratos compartilhados como referência. A Fase 4 não foi iniciada automaticamente.
+
+## Atualização — Fase 4
+
+### Entregas
+
+- Migration incremental V3 para categorias, produtos, apresentações e imagens, sem tabelas de estoque, carrinho ou pedidos.
+- Administração protegida por `ADMIN`, com DTOs específicos, validação, unicidade e concorrência otimista por `version`.
+- Catálogo público paginado com busca por nome, filtro por categoria, ordenação por whitelist e detalhes somente de produtos publicados.
+- Publicação derivada de categoria ativa, produto ativo, apresentação ativa e imagem principal única.
+- Upload local persistente de PNG/JPEG com limite de 5 MiB, 8 imagens ativas por produto, limite de 20 milhões de pixels, chaves geradas pelo servidor e proteção contra path traversal.
+- Imagem principal, ordenação, remoção lógica e conteúdo público/admin com políticas de acesso distintas.
+- `CatalogIntegrationTest` com PostgreSQL 18.6 real via Testcontainers.
+
+### Evidências
+
+- Compilação e `CatalogIntegrationTest`: 4 testes, 0 falhas, 0 erros, 0 ignorados.
+- `clean verify` final: 31 testes, 0 falhas, 0 erros, 0 ignorados; JAR executável gerado e V3 aplicada nos bancos isolados.
+- Logs brutos sanitizáveis permanecem em `Docs/execucoes/logs/`, ignorados pelo Git.
+
+### Limitações e pendências
+
+O storage local foi validado; storage durável/CDN, rotina de reconciliação de arquivos órfãos e política final de URLs/cache de produção permanecem pendentes. Estoque, disponibilidade, carrinho, checkout, pedidos e frontend não foram implementados.
+
+### Situação
+
+Fase 4 implementada, validada localmente e registrada no commit local da entrega. O smoke administrativo contra o banco persistente ficou parcial por ausência de credencial do ADMIN existente; os fluxos equivalentes passaram nos testes com PostgreSQL real. A conclusão não marca o sistema como pronto para produção.
+
+### Próxima etapa
+
+Fase 5 do roadmap, sem início automático nesta entrega.
 
 ## Evidências da revisão
 

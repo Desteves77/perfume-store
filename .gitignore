@@ -22,4 +22,6 @@ Thumbs.db
 *.log
 logs/
 docker-data/
+backend/data/
+backend/target/test-catalog-images/
 Docs/execucoes/logs/

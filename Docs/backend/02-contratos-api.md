@@ -320,7 +320,32 @@ Resposta:
 }
 ```
 
-## 8. Integração segura com o frontend
+## 8. Operações implementadas na Fase 4
+
+Os caminhos abaixo são a primeira implementação executável do contrato de catálogo. Os demais caminhos deste documento continuam planejados e não devem ser tratados como disponíveis.
+
+| Método e caminho | Acesso | Finalidade | Respostas principais |
+|---|---|---|---|
+| `GET /api/v1/catalog/categories` | público | categorias ativas paginadas | `200`, `400`, `422` |
+| `GET /api/v1/catalog/products` | público | produtos publicados, busca `q`, filtro `category`, paginação e ordenação `name`, `createdAt` ou `slug` | `200`, `400`, `404`, `422` |
+| `GET /api/v1/catalog/products/{slug}` | público | detalhe publicado com apresentações ativas e imagens ativas | `200`, `404` |
+| `GET /api/v1/catalog/products/{slug}/presentations` | público | apresentações ativas do detalhe | `200`, `404` |
+| `GET /api/v1/catalog/products/{slug}/images` | público | metadados de imagens publicadas | `200`, `404` |
+| `GET /api/v1/catalog/products/{slug}/images/{imageId}/content` | público | conteúdo raster da imagem publicada | `200`, `404` |
+| `GET /api/v1/admin/categories` | ADMIN | categorias administrativas, inclusive inativas | `200`, `401`, `403` |
+| `POST /api/v1/admin/categories` | ADMIN | criar categoria | `201`, `409`, `422` |
+| `PATCH /api/v1/admin/categories/{id}` | ADMIN | editar categoria com `version` | `200`, `404`, `409`, `422` |
+| `GET/POST /api/v1/admin/products` | ADMIN | listar/criar produtos | `200`, `201`, `401`, `403`, `409`, `422` |
+| `GET/PATCH /api/v1/admin/products/{id}` | ADMIN | consultar/editar produto com versão | `200`, `404`, `409`, `422` |
+| `PUT /api/v1/admin/products/{id}/status` | ADMIN | ativar/desativar produto com pré-condições de publicação | `200`, `404`, `409`, `422` |
+| `GET/POST/PATCH /api/v1/admin/products/{productId}/presentations...` | ADMIN | manter apresentações, SKU, volume, preço e estado | `200`, `201`, `404`, `409`, `422` |
+| `GET/POST/DELETE /api/v1/admin/products/{productId}/images...` | ADMIN | listar, enviar, ordenar, definir principal, remover logicamente e consultar preview | `200`, `201`, `204`, `404`, `409`, `413`, `415`, `422` |
+
+Todas as operações administrativas que alteram estado exigem o cookie de sessão e CSRF conforme a Fase 3. Upload aceita somente `image/png` ou `image/jpeg` cujo conteúdo seja decodificável como PNG/JPEG; o limite é 5 MiB, 8 imagens ativas por produto e 20.000.000 de pixels. A resposta de apresentação usa `price.amount` como string decimal com escala 2 e `price.currency` `BRL`. A resposta pública não contém quantidade ou disponibilidade de estoque; produto publicado nesta fase significa catálogo visível, não produto necessariamente comprável.
+
+Categorias, produtos e apresentações usam controle de concorrência otimista por `version`. Reenvio com versão antiga retorna `409 CONCURRENT_UPDATE`; conflitos de slug/SKU retornam `409`. Produto ativo exige categoria ativa, apresentação ativa e uma imagem principal; a consulta pública aplica essa regra novamente, de forma que desativar a categoria oculta os produtos sem mutar seu estado.
+
+## 9. Integração segura com o frontend
 
 O frontend deve enviar cookies de sessão e CSRF conforme a topologia, tratar `401`, `403`, `409`, `422` e `429` sem duplicar regras e preservar a chave de idempotência durante retries da mesma operação. Não deve fazer retry automático em `POST /orders` ou início de pagamento sem consultar o resultado. Campos como `allowedActions`, `canCheckout` e `issues` são informativos para a interface; a autorização final continua no backend.
 ## 9. Endpoints implementados na Fase 3

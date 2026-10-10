@@ -1,6 +1,10 @@
 spring:
   flyway:
     clean-disabled: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   datasource:
     hikari:
       maximum-pool-size: 4
@@ -14,6 +18,12 @@ server:
         same-site: Lax
 
 app:
+  catalog:
+    images:
+      storage-root: ${CATALOG_IMAGE_STORAGE_ROOT:./target/test-catalog-images}
+      max-bytes: 5242880
+      max-images-per-product: 8
+      max-pixels: 20000000
   cors:
     allowed-origins: http://allowed.test
     allow-credentials: true

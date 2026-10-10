@@ -27,6 +27,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -107,6 +108,13 @@ public class ApiExceptionHandler {
     ResponseEntity<ApiErrorResponse> handleNotFound(Exception exception, HttpServletRequest request) {
         return response(request, 404, "RESOURCE_NOT_FOUND", "Recurso não encontrado",
                 "O recurso solicitado não foi encontrado.", null);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiErrorResponse> handleUploadTooLarge(MaxUploadSizeExceededException exception,
+            HttpServletRequest request) {
+        return response(request, 413, "IMAGE_TOO_LARGE", "Arquivo muito grande",
+                "A imagem excede o tamanho máximo permitido.", null);
     }
 
     @ExceptionHandler(Exception.class)

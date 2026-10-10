@@ -79,6 +79,8 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/v1/security/csrf").permitAll()
+                        .requestMatchers("/api/v1/catalog/**").permitAll()
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/logout",
                                 "/api/v1/auth/password-recovery-requests", "/api/v1/auth/password-resets").permitAll()
                         .anyRequest().authenticated())
