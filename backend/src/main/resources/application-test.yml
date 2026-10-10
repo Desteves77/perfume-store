@@ -8,3 +8,11 @@ spring:
 server:
   port: 0
 
+app:
+  cors:
+    allowed-origins: http://allowed.test
+    allow-credentials: true
+  security:
+    csrf:
+      cookie-secure: false
+      cookie-same-site: Lax

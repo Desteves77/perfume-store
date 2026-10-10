@@ -43,3 +43,19 @@ Este documento define cenários para as fases de implementação. Não há teste
 - **Contrato externo**: assinatura, payloads, estados, timeout e reconciliação em sandbox do provedor.
 - **Operacional**: expiração, retry, outbox, restauração e procedimento manual de cancelamento/reembolso.
 - **Revisão**: logs, headers, OpenAPI, ausência de segredos e isolamento por usuário.
+
+## Evidências executadas na Fase 2
+
+| ID | Regra verificada | Resultado observado | Tipo de verificação | Fase |
+|---|---|---|---|---|
+| VAL-032 | JSON malformado e tipo incompatível | `400`, respectivamente `MALFORMED_JSON` e `INVALID_JSON_TYPE`, com correlação | teste MockMvc | 2 |
+| VAL-033 | Validação simples e aninhada | `422`, campos como `name` e `nested.label`, mensagens em português | teste MockMvc | 2 |
+| VAL-034 | Paginação e ordenação | limite `101` rejeitado; campo de ordenação desconhecido rejeitado; ordenação permitida com `id` como desempate | teste MockMvc | 2 |
+| VAL-035 | Dinheiro e datas | dinheiro como string `199.90`/`BRL`, instante UTC e data civil ISO | teste MockMvc | 2 |
+| VAL-036 | Correlação e erro interno | header e corpo correlacionados; mensagem genérica sem marcador interno | teste MockMvc e revisão de log | 2 |
+| VAL-037 | Autenticação e autorização | rota protegida devolve JSON `401`; cliente autenticado sem papel recebe `403` | teste Spring Security/MockMvc | 2 |
+| VAL-038 | CORS | origem permitida e preflight respondem; origem desconhecida é rejeitada com `403` | teste MockMvc | 2 |
+| VAL-039 | CSRF | ausência e token inválido devolvem `403 CSRF_INVALID`; token válido permite operação de fixture | teste Spring Security/MockMvc | 2 |
+| VAL-040 | OpenAPI, health e Flyway | documentação e health disponíveis no perfil test; PostgreSQL real aplica V1 | teste de integração com Testcontainers | 1 e 2 |
+
+Os testes automatizados foram executados com `ApiContractIntegrationTest` (12 testes, sem falhas após o ajuste da expectativa de origem CORS) e `InfrastructureIntegrationTest` (2 testes). A verificação de produção confirmou a configuração de OpenAPI desabilitada por arquivo de perfil; não houve deploy nem execução em ambiente externo.

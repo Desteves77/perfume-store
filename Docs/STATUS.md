@@ -2,7 +2,7 @@
 
 ## Fase atual
 
-Fase 1 — inicialização do backend e infraestrutura local.
+Fase 2 — padrões da API e base de segurança.
 
 ## Entregas produzidas
 
@@ -15,6 +15,10 @@ Fase 1 — inicialização do backend e infraestrutura local.
 - Teste de integração com PostgreSQL real via Testcontainers, verificando migration, histórico e saúde HTTP.
 - Workflow `.github/workflows/backend-ci.yml` para push e pull request, ainda não executado no GitHub.
 - `README.md` com pré-requisitos, comandos PowerShell/Linux, operação do Compose, testes, build, health check e solução de problemas.
+- Contrato compartilhado de erros em `application/problem+json`, validação de corpos e parâmetros, correlação de requisições, paginação, ordenação por whitelist e serialização de dinheiro/datas.
+- Spring Security restritivo, sem login comercial, sem usuário fixo e sem senha gerada; rotas protegidas por padrão, handlers JSON para `401`/`403` e CSRF por cookie preparado para a Fase 3.
+- CORS com origens explícitas por ambiente, endpoint técnico de CSRF e OpenAPI em local/test; documentação desabilitada no perfil `prod`.
+- Fixtures de teste somente em `src/test/java` e 12 testes de contrato HTTP com PostgreSQL real via Testcontainers.
 
 ## Versões utilizadas
 
@@ -24,6 +28,7 @@ Fase 1 — inicialização do backend e infraestrutura local.
 - PostgreSQL 18.6 para Compose e Testcontainers.
 - Testcontainers for Java 2.0.5.
 - Flyway gerenciado pelo Spring Boot 4.1.1, usando `spring-boot-starter-flyway` e o suporte PostgreSQL correspondente.
+- springdoc OpenAPI Starter WebMVC 3.1.1.
 
 ## Ajustes documentais da Fase 0
 
@@ -40,6 +45,8 @@ Fase 1 — inicialização do backend e infraestrutura local.
 - `docker compose config --quiet`: configuração do Compose válida.
 - `docker compose up -d postgres`: PostgreSQL 18.6 iniciado e reportado como `healthy` em `127.0.0.1:54329`.
 - `backend\mvnw.cmd --batch-mode --no-transfer-progress clean verify`: **BUILD SUCCESS**; 2 testes, 0 falhas, 0 erros, JAR executável gerado.
+- `backend\mvnw.cmd -Dtest=ApiContractIntegrationTest test`: **BUILD SUCCESS**; 12 testes de contrato, 0 falhas, 0 erros, com PostgreSQL 18.6 real via Testcontainers.
+- A suíte de contrato confirmou erros JSON, validação, paginação/ordenação, serialização, correlação, `401`/`403`, CORS, CSRF, OpenAPI e health. O contexto aplicou a migration V1 no banco isolado.
 - Smoke test do JAR com perfil `local`: aplicação iniciou em 8080, aplicou V1 e `/actuator/health` respondeu HTTP 200 com status `UP`.
 - Consulta no banco do Compose: histórico do Flyway registrou V1 com `success = true` e o schema `perfumestore` existe.
 - Segunda inicialização contra o mesmo volume: Flyway validou as migrations e informou que o schema estava atualizado, sem reaplicar V1.
@@ -48,7 +55,7 @@ Os logs observados não exibiram senhas, tokens ou cookies. O workflow de CI foi
 
 ## Pendências e limitações
 
-Não foram implementados autenticação, Spring Security, usuários, catálogo, estoque comercial, carrinho, frete, pedidos, pagamentos, notificações, OpenAPI ou endpoints de negócio. As pendências comerciais e de serviços externos continuam classificadas em `backend/03-decisoes-e-pendencias.md` e não bloqueiam a base técnica da Fase 1.
+Não foram implementados cadastro, login, autenticação persistida, recuperação de senha, usuários, catálogo, estoque comercial, carrinho, frete, pedidos, pagamentos, notificações ou endpoints de negócio. A base de segurança da Fase 2 existe, mas a autenticação efetiva pertence à Fase 3. As pendências comerciais e de serviços externos continuam classificadas em `backend/03-decisoes-e-pendencias.md`.
 
 O ambiente local possui Java 8 no `PATH` de `java`, embora o JDK 17 esteja disponível em `C:\Program Files\Zulu\zulu-17`; o README documenta a correção por sessão. A identidade efetiva usada no commit foi `Davi Esteves <davi00eteves@gmail.com>`; nenhuma identidade global foi alterada.
 
@@ -56,14 +63,18 @@ O ambiente local possui Java 8 no `PATH` de `java`, embora o JDK 17 esteja dispo
 
 Implementação e verificação local concluídas. A conclusão refere-se à fundação executável e à infraestrutura desta fase; não marca funcionalidades comerciais futuras como prontas.
 
+## Situação da Fase 2
+
+Implementação e verificação local concluídas. A conclusão refere-se aos padrões compartilhados de API, à proteção padrão das rotas, CORS, CSRF técnico, OpenAPI e seus testes; não marca autenticação comercial nem módulos de negócio como prontos.
+
 ## Próxima etapa
 
-Revisar e, se necessário, confirmar pendências de serviços externos e iniciar a Fase 2 prevista no roadmap, mantendo a especificação e esta fundação como referência. A Fase 2 não foi iniciada automaticamente.
+Iniciar a Fase 3 para implementar cadastro, login e sessões persistidas, usando esta base de segurança e os contratos compartilhados como referência. A Fase 3 não foi iniciada automaticamente.
 
 ## Evidências da revisão
 
 - `Docs/ROADMAP_BACKEND.md` e `Docs/ROADMAP_FRONTEND.md` foram lidos e preservados.
 - Os seis documentos da Fase 0 foram consultados antes da implementação.
 - Não havia `AGENTS.md` nem implementação anterior; os documentos existentes foram mantidos.
-- O diff final deve ficar restrito à documentação ajustada e aos arquivos da fundação backend desta fase.
+- O diff da Fase 2 deve ficar restrito aos padrões compartilhados, configuração de segurança, testes de contrato e documentação correspondente; a V1 e os módulos comerciais permanecem inalterados.
 - Commit local criado com a mensagem solicitada; o hash é informado no relatório da entrega.

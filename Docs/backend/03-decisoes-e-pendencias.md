@@ -76,3 +76,16 @@ Nenhuma conta, serviço ou contratação será criada nesta fase. Onde a decisã
 
 Não foi encontrado conflito relevante entre os dois roadmaps e o escopo desta fase. Ambos mantêm as regras no backend, tratam pagamento por confirmação do servidor, exigem idempotência no checkout e deixam a escolha de serviços externos para etapas posteriores. Os documentos de roadmap permanecem inalterados.
 
+## 7. Decisões técnicas registradas na Fase 2
+
+- O contrato de erro executável usa `application/problem+json`, código estável, mensagem em português, `correlationId` e lista opcional de erros por campo. Erros de MVC e da cadeia do Spring Security usam o mesmo formato.
+- O filtro de correlação valida `X-Correlation-Id`, gera UUID quando necessário, devolve o valor no response header e limpa o MDC no fim da requisição. Corpos, cookies, tokens e autorização não entram no log automático.
+- A paginação começa em zero, usa tamanho padrão 20 e máximo 100. Ordenação é uma expressão `campo,direção` validada por whitelist de cada endpoint e recebe desempate estável pelo identificador.
+- A serialização monetária é localizada no DTO `MoneyResponse`, usa `BigDecimal` e string decimal em BRL. Não há serializador global que altere números decimais não comerciais.
+- A aplicação usa Spring Security com sessão preparada (`IF_REQUIRED`), sem formulário, HTTP Basic, JWT, usuário fixo ou senha gerada. Até a Fase 3 não há `UserDetailsService` autenticável; o bean fail-closed impede a senha automática de desenvolvimento.
+- CSRF permanece ativo para a estratégia futura por cookie. `GET /api/v1/security/csrf` emite `XSRF-TOKEN`; o frontend deve enviar `X-XSRF-TOKEN` com `credentials: include`. Esse endpoint técnico não implementa autenticação nem representa uma sessão comercial.
+- CORS é explícito por ambiente, com credenciais somente quando configuradas e sem combinação com origem curinga. A origem de desenvolvimento é fallback apenas no perfil local; produção exige `CORS_ALLOWED_ORIGINS`.
+- OpenAPI usa `springdoc-openapi-starter-webmvc-ui` 3.1.1, compatível com Spring Boot 4 conforme a documentação oficial do projeto. A documentação fica disponível em local/test e desabilitada em produção.
+- O Actuator continua limitado a health, sem detalhes públicos de componentes, ambiente ou configuração.
+
+Essas decisões estabelecem a infraestrutura de contratos e segurança. Elas não antecipam cadastro, sessão persistida, recuperação de senha ou qualquer regra comercial.

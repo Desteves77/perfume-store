@@ -1,6 +1,16 @@
 # PerfumeStore — Fase 0: contratos iniciais da API
 
-Status: especificação inicial, sujeita a ajuste controlado durante a implementação. Base URL ilustrativa: `/api/v1`. Nenhum endpoint abaixo está implementado nesta fase.
+Status: especificação inicial, sujeita a ajuste controlado durante a implementação. Base URL ilustrativa: `/api/v1`. Os endpoints comerciais abaixo continuam planejados; a Fase 2 implementa somente os contratos compartilhados e os endpoints técnicos indicados na seção seguinte.
+
+## 0. O que está implementado na Fase 2
+
+Estão disponíveis nos perfis `local` e `test`:
+
+- `GET /actuator/health`: health público, sem detalhes internos.
+- `GET /v3/api-docs` e `GET /swagger-ui/index.html`: documentação OpenAPI técnica; ambos ficam desabilitados no perfil `prod`.
+- `GET /api/v1/security/csrf`: emite `XSRF-TOKEN` e devolve `{ "headerName": "X-XSRF-TOKEN", "token": "..." }`. É um endpoint técnico e não implementa login.
+
+Os controllers de fixture usados para validar os contratos ficam exclusivamente em `src/test/java` e não fazem parte do artefato publicado. Cadastro, sessão persistida, catálogo, carrinho e demais endpoints comerciais ainda não estão implementados.
 
 ## 1. Convenções
 
@@ -34,6 +44,18 @@ Status: especificação inicial, sujeita a ajuste controlado durante a implement
 ```
 
 `fieldErrors` é omitido ou vazio quando não se aplica. Nunca há stack trace, SQL, nome de classe, segredo, token ou decisão interna no corpo. Exemplos de códigos: `AUTHENTICATION_REQUIRED`, `FORBIDDEN`, `RESOURCE_NOT_FOUND`, `PRODUCT_INACTIVE`, `OUT_OF_STOCK`, `CHECKOUT_REVIEW_REQUIRED`, `IDEMPOTENCY_KEY_REUSED`, `PAYMENT_PENDING`, `PAYMENT_REVIEW_REQUIRED`, `INVALID_WEBHOOK`, `SHIPPING_DESTINATION_UNSERVED`.
+
+Na infraestrutura implementada, o mapeamento é: `400` para sintaxe, tipos e parâmetros inválidos; `401` para ausência de autenticação; `403` para autorização, CSRF ou origem CORS rejeitada; `404` para recurso inexistente; `405` para método não permitido; `415` para mídia não suportada; `422` para validação semântica; `500` para falha inesperada. Respostas privadas e erros usam `Cache-Control: no-store`.
+
+O `X-Correlation-Id` é validado (1 a 64 caracteres alfanuméricos, `-`, `_`, `.` ou `:`) ou gerado pelo servidor. O mesmo valor aparece no header de resposta, no erro e no MDC durante a requisição. Corpos, cookies, tokens e headers de autorização não são registrados automaticamente.
+
+## 2.1. Paginação, ordenação e serialização
+
+- `page` começa em `0`, o padrão de `size` é `20` e o máximo é `100`. Valores negativos ou zero para `size`, e valores acima do máximo, produzem `VALIDATION_ERROR` com erro de campo.
+- `sort` usa exatamente `campo,asc` ou `campo,desc`. A lista de campos válidos é definida por cada endpoint; nomes desconhecidos produzem `INVALID_SORT`. A resposta informa `page`, `size`, `totalElements`, `totalPages`, `items` e a ordenação aplicada. O servidor acrescenta `id,asc` como desempate quando necessário.
+- Valores monetários são `BigDecimal` e aparecem como strings decimais, com moeda explícita `BRL`; DTOs comerciais devem definir a escala e o arredondamento exigidos pelo domínio.
+- Instantes técnicos são ISO-8601 UTC, por exemplo `2026-10-10T12:00:00Z`. Datas civis são strings `YYYY-MM-DD`, sem conversão de fuso.
+- Os contratos de dinheiro, data e paginação são compartilhados; cálculos de preço, frete e totais continuam exclusivamente no backend dos módulos comerciais.
 
 ## 3. Endpoints públicos e de autenticação
 

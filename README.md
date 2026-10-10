@@ -1,6 +1,6 @@
 # PerfumeStore
 
-Base do backend do PerfumeStore. Esta entrega implementa a Fase 1 do roadmap: aplicação Spring Boot executável, PostgreSQL local, Flyway, endpoint de saúde, teste de integração com PostgreSQL real via Testcontainers e build reproduzível pelo Maven Wrapper.
+Base do backend do PerfumeStore. Esta entrega implementa as Fases 1 e 2 do roadmap: aplicação Spring Boot executável, PostgreSQL local, Flyway, padrões de API, validação, erros, paginação, OpenAPI e base de segurança pronta para a autenticação por sessão da Fase 3.
 
 ## Versões fixadas
 
@@ -38,6 +38,8 @@ compose.yaml
 ```
 
 Os packages de domínio estão preparados, mas ainda não contêm controllers, entidades, repositories ou regras comerciais. Essas classes serão materializadas nas fases correspondentes.
+
+Os componentes compartilhados de API já implementam o contrato de erros, correlação, paginação, ordenação permitida e serialização de dinheiro. Os controllers usados para exercitar esses contratos existem somente em `src/test/java` e não são publicados pela aplicação.
 
 ## Pré-requisitos
 
@@ -118,7 +120,16 @@ Resposta esperada:
 {"status":"UP"}
 ```
 
-O único endpoint público de infraestrutura nesta etapa é `/actuator/health`. Detalhes de componentes, credenciais e configuração não são expostos.
+Os endpoints públicos de infraestrutura são `/actuator/health`, `/v3/api-docs`, `/swagger-ui/index.html` e `/api/v1/security/csrf` nos perfis local e test. O Actuator expõe somente health e sem detalhes de componentes. A documentação OpenAPI fica desabilitada no perfil `prod`.
+
+Para consultar a documentação local:
+
+```powershell
+Invoke-WebRequest http://localhost:8080/v3/api-docs
+Start-Process http://localhost:8080/swagger-ui/index.html
+```
+
+O endpoint `GET /api/v1/security/csrf` devolve o nome do header e o token, além de emitir o cookie `XSRF-TOKEN`. O frontend deve usar `credentials: 'include'` e enviar o valor no header `X-XSRF-TOKEN` em operações inseguras. Esse token não é o cookie de sessão e a chamada técnica não autentica o usuário.
 
 Para verificar o histórico do Flyway no banco local:
 
@@ -131,7 +142,7 @@ Uma segunda inicialização da aplicação deve validar a migration existente se
 
 ## Testes e build
 
-O `verify` usa o Maven Wrapper. O teste `InfrastructureIntegrationTest` inicia um container PostgreSQL 18.6 com Testcontainers, sobe a aplicação em porta aleatória, verifica a migration e consulta `/actuator/health`. Ele não usa H2 e não conecta ao banco do Compose.
+O `verify` usa o Maven Wrapper. `InfrastructureIntegrationTest` verifica PostgreSQL, Flyway e health; `ApiContractIntegrationTest` verifica os contratos HTTP, segurança, CORS, CSRF e OpenAPI usando PostgreSQL real via Testcontainers. Os testes não usam H2 nem conectam ao banco do Compose.
 
 O artefato executável é gerado em `backend\target\perfumestore-backend-0.0.1-SNAPSHOT.jar`:
 
@@ -154,7 +165,17 @@ java -jar target\perfumestore-backend-0.0.1-SNAPSHOT.jar --spring.profiles.activ
 
 `.github/workflows/backend-ci.yml` executa em push e pull request, usa JDK 17, Maven Wrapper, cache do Maven e `verify`. Os testes criam PostgreSQL isolado por Testcontainers. A existência do workflow foi validada localmente; sua execução no GitHub ainda depende de um push ou pull request.
 
+## Convenções da API na Fase 2
+
+- Erros usam `application/problem+json`, código estável, mensagem em português, `correlationId` e `fieldErrors` quando aplicável.
+- `X-Correlation-Id` recebido é aceito somente com caracteres seguros e até 64 caracteres; caso contrário, o servidor gera um UUID. O valor aparece no header de resposta e no contexto dos logs.
+- Paginação começa em `page=0`, usa `size=20` por padrão e aceita no máximo `100`. Ordenação usa `sort=campo,asc|desc`; cada endpoint futuro deverá fornecer sua própria lista de campos permitidos e o servidor acrescentará desempate estável.
+- `BigDecimal` comercial é serializado como string decimal em `BRL`, com escala 2 quando o DTO exigir. Instantes usam ISO-8601 em UTC; datas civis usam `YYYY-MM-DD`.
+- Todas as rotas, exceto as explicitamente públicas, exigem autenticação. Não há login, usuários, sessão persistida ou endpoints comerciais nesta fase; não existe senha gerada de desenvolvimento.
+- CORS usa origens explícitas da variável `CORS_ALLOWED_ORIGINS`. Em produção, a variável é obrigatória e não há origem de desenvolvimento como fallback.
+
+Os contratos comerciais continuam especificados em `Docs/backend/02-contratos-api.md`; somente os endpoints técnicos efetivamente implementados nesta fase são publicados.
+
 ## Limites desta fase
 
-Ainda não existem autenticação, Spring Security, usuários, catálogo, estoque, carrinho, frete, pedidos, pagamentos, notificações comerciais, OpenAPI ou endpoints de negócio. Os roadmaps e a especificação da Fase 0 continuam sendo a referência para as próximas fases.
-
+Ainda não existem cadastro, login, autenticação persistida, recuperação de senha, usuários, catálogo, estoque, carrinho, frete, pedidos, pagamentos, notificações comerciais ou endpoints de negócio. A aplicação tem apenas a base de segurança e o endpoint técnico de CSRF. Os roadmaps e a especificação da Fase 0 continuam sendo a referência para as próximas fases.

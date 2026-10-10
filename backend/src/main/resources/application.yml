@@ -12,6 +12,12 @@ spring:
   jackson:
     time-zone: UTC
 
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
 server:
   shutdown: graceful
 
@@ -24,4 +30,3 @@ management:
     health:
       show-details: never
       show-components: never
-
