@@ -1,0 +1,25 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+
+# Java/Maven build output
+backend/target/
+**/target/
+*.class
+
+# IDE and operating-system files
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.DS_Store
+Thumbs.db
+
+# Logs and local runtime data
+*.log
+logs/
+docker-data/
+

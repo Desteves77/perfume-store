@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: perfumestore-backend
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    schemas: perfumestore
+    default-schema: perfumestore
+    create-schemas: true
+    validate-on-migrate: true
+    clean-disabled: true
+  jackson:
+    time-zone: UTC
+
+server:
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+

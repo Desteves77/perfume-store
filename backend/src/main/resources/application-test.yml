@@ -1,0 +1,10 @@
+spring:
+  flyway:
+    clean-disabled: true
+  datasource:
+    hikari:
+      maximum-pool-size: 4
+
+server:
+  port: 0
+
