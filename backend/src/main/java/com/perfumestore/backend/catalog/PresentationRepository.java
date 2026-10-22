@@ -36,6 +36,13 @@ public class PresentationRepository {
         return query("select * from perfumestore.product_presentations where id = ?", id).stream().findFirst();
     }
 
+    public boolean existsActive(UUID id) {
+        Boolean exists = jdbc.queryForObject(
+                "select exists(select 1 from perfumestore.product_presentations where id = ? and active = true)",
+                Boolean.class, id);
+        return Boolean.TRUE.equals(exists);
+    }
+
     public List<PresentationRecord> findByProduct(UUID productId, boolean onlyActive) {
         String where = onlyActive ? " and active = true" : "";
         return query("select * from perfumestore.product_presentations where product_id = ?" + where

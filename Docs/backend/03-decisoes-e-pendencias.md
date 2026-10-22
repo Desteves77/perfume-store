@@ -108,7 +108,7 @@ As referências oficiais usadas para a integração são [Spring Session JDBC](h
 - Publicação é uma condição derivada: produto e categoria ativos, pelo menos uma apresentação ativa e exatamente uma imagem principal ativa. Categoria desativada oculta os produtos publicados sem reescrever o estado do produto.
 - A administração é uma superfície dos domínios sob `/api/v1/admin/**` com `hasRole('ADMIN')`; não foi criado módulo paralelo de regras nem endpoint público de manutenção.
 - O adaptador local de imagens implementa `ImageStorage`, gera UUIDs de arquivo, valida path por contenção do diretório e aceita PNG/JPEG decodificáveis. O arquivo é removido quando a transação de metadados falha; remoção administrativa é lógica e mantém a referência para reconciliação/limpeza posterior.
-- A resposta pública expõe preço e apresentação, mas não inventa estoque ou disponibilidade. Estoque, reservas e comprabilidade pertencem à Fase 5 em diante.
+- Na Fase 4, a resposta pública expunha preço e apresentação sem inventar estoque ou disponibilidade. A Fase 5 materializou `availability` com saldo real; o frontend continua sem autoridade para calcular ou alterar esses valores.
 - Imagens publicadas podem ser acessadas publicamente por URL controlada; imagens de produtos não publicados somente pelo preview administrativo autorizado. Nenhum caminho físico ou nome original vira URL.
 
 ## 10. Pendências após a Fase 4
@@ -116,7 +116,7 @@ As referências oficiais usadas para a integração são [Spring Session JDBC](h
 - Provedor de armazenamento durável/CDN e política de domínio/cache para produção: não bloqueia a implementação local; bloqueia a operação de imagens fora de uma única instância.
 - Regras finais de publicação e conteúdo comercial, incluindo eventual categoria múltipla, revisão editorial e auditoria: não bloqueiam a Fase 5, mas exigem decisão antes da homologação comercial.
 - Rotina operacional de reconciliação de arquivos órfãos e retenção de imagens removidas: não bloqueia o MVP local; bloqueia a manutenção de produção em escala.
-- A tabela de estoque e a representação de disponibilidade continuam reservadas à Fase 5; nenhum valor fictício foi adicionado ao catálogo.
+- A tabela de estoque e a representação de disponibilidade foram materializadas na Fase 5 pela V4; nenhuma quantidade positiva fictícia foi adicionada às apresentações existentes.
 
 ## 11. Pendências após a Fase 3
 
@@ -124,3 +124,20 @@ As referências oficiais usadas para a integração são [Spring Session JDBC](h
 - Confirmar topologia de domínios e HTTPS para ajustar `SameSite`, `Secure`, CORS e CSRF; não bloqueia desenvolvimento local.
 - Definir armazenamento e retenção de auditoria, MFA e procedimento operacional de desabilitação de administradores; não bloqueia o catálogo inicial.
 - Substituir o limitador em memória por mecanismo compartilhado antes de escalar horizontalmente; bloqueia a prontidão de produção, não a Fase 4.
+
+## 12. Decisões técnicas registradas na Fase 5
+
+- O estoque é controlado por apresentação, não por produto. A disponibilidade é calculada no backend como físico menos reservado.
+- A V4 usa saldo sob demanda com zero para não inventar unidades para apresentações existentes. A primeira entrada materializa o saldo positivo e deixa movimentação auditável.
+- A administração aceita entradas positivas e ajustes físicos por delta não nulo. Um ajuste negativo só é aceito quando preserva `physical_quantity >= reserved_quantity`; a baixa física de uma venda continua exclusiva da confirmação de reserva.
+- A concorrência usa lock pessimista da linha PostgreSQL, junto de constraints, chave idempotente e histórico na mesma transação. Testes usam transações reais e threads independentes.
+- Não há endpoint público de reserva. O serviço interno `InventoryService` será a porta usada futuramente por `order` e `payment`.
+- O ciclo da fase limita reservas a `ACTIVE`, `CONFIRMED` e `RELEASED`; expiração automática e integração com pedido ficam para a Fase 8.
+- O catálogo expõe quantidade disponível e indicador de compra, sem divulgar físico, reservado, reserva ou ator.
+
+## 13. Pendências após a Fase 5
+
+- Definir a expiração e o agrupamento de reservas no pedido, incluindo reserva de múltiplas apresentações com ordem determinística de locks; bloqueia a implementação do checkout, não a infraestrutura atual.
+- Integrar `InventoryService` ao módulo de pedidos para converter reservas após pagamento válido; bloqueia as Fases 8 e 9.
+- Definir procedimentos de devolução física, inspeção e eventual reposição; não é substituído por reembolso financeiro.
+- Avaliar limite operacional e auditoria externa para saldos muito grandes; a implementação atual limita quantidades a `integer` PostgreSQL/Java.

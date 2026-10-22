@@ -114,7 +114,9 @@ public final class CatalogDtos {
 
     public record PresentationResponse(UUID id, UUID productId, String sku, BigDecimal volume, String unit,
             MoneyResponse price, String currency, boolean active, long version, Instant createdAt,
-            Instant updatedAt) { }
+            Instant updatedAt, AvailabilityResponse availability) { }
+
+    public record AvailabilityResponse(int availableQuantity, boolean availableForPurchase) { }
 
     public record ImageResponse(UUID id, String url, String altText, int position, boolean primary,
             String contentType, Integer width, Integer height) { }

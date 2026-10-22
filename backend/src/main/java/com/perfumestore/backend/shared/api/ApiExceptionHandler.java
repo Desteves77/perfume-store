@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -84,7 +85,8 @@ public class ApiExceptionHandler {
         return response(request, 400, code, "JSON inválido", clientMessage, null);
     }
 
-    @ExceptionHandler({ MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class })
+    @ExceptionHandler({ MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class,
+            MissingRequestHeaderException.class })
     ResponseEntity<ApiErrorResponse> handleParameterError(Exception exception, HttpServletRequest request) {
         return response(request, 400, "INVALID_PARAMETER", "Parâmetro inválido",
                 "Verifique os parâmetros informados.", null);

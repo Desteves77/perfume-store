@@ -160,3 +160,13 @@ A implementação da Fase 3 materializa `app_users` e `password_reset_tokens` na
 As sessões usam Spring Session JDBC, com as tabelas oficiais `spring_session` e `spring_session_attributes` no schema `perfumestore`, criadas e versionadas pelo Flyway. O cookie opaco `SESSION` é `HttpOnly`, usa `SameSite` configurável e é `Secure` em produção. O contexto de segurança é persistido pelo repositório JDBC; o logout remove a sessão e a redefinição de senha remove todas as sessões cujo principal é o UUID do usuário. Não há JWT, Redis ou tabela proprietária paralela de sessão.
 
 O schema das tabelas de Spring Session não é inicializado automaticamente pela biblioteca: `spring.session.jdbc.initialize-schema=never` e a migration V2 são a única fonte de evolução. A expiração por inatividade é configurável, com padrão local de 30 minutos, e a limpeza é executada por cron do repositório JDBC.
+
+## 7. Implementação do estoque na Fase 5
+
+A migration `V4__create_inventory_tables.sql` cria `inventory_balances`, `stock_reservations` e `inventory_movements`. O saldo é uma linha única por apresentação, com `integer` não negativo, `reserved_quantity <= physical_quantity` e `version` técnico. Linhas são criadas sob demanda com zero; a leitura pública de uma apresentação sem linha retorna disponibilidade zero.
+
+`inventory_movements` é append-only e registra deltas, saldos anterior/posterior, motivo, chave da operação, reserva, ator quando houver, correlação e instante. A chave operacional é única. Movimentações internas de reserva, confirmação e liberação não inventam um administrador humano; o ator é nulo quando a operação futura vier de pedido/checkout.
+
+`InventoryService` bloqueia a linha de saldo com `SELECT ... FOR UPDATE` dentro da transação. Reserva, confirmação, liberação e entrada/ajuste gravam saldo, reserva e histórico na mesma transação. A unicidade das chaves e as constraints do PostgreSQL permanecem como defesa final. Como a Fase 5 opera uma apresentação por chamada, a ordem de lock é única; o futuro checkout deverá ordenar locks por `presentation_id` ao reservar múltiplas linhas.
+
+O serviço expõe portas internas para reservar, confirmar e liberar, sem endpoint público ou endpoint administrativo de teste. A expiração automática não foi iniciada nesta fase e será definida com o ciclo de pedidos.

@@ -101,6 +101,48 @@ Fase 4 implementada, validada localmente e registrada no commit local da entrega
 
 Fase 5 do roadmap, sem início automático nesta entrega.
 
+## Atualização — Fase 5: estoque e disponibilidade
+
+### Entregas
+
+- Migration incremental `V4__create_inventory_tables.sql` com saldo por apresentação, reservas e movimentações auditáveis.
+- Entradas positivas e ajustes físicos por delta não nulo, com idempotência por `Idempotency-Key`, motivo obrigatório e responsável ADMIN; reduções abaixo do reservado são rejeitadas.
+- Serviços internos transacionais para reservar, confirmar e liberar; não foram criados endpoints públicos para reservas.
+- Concorrência protegida por bloqueios PostgreSQL `FOR UPDATE`, constraints e chaves únicas; a disponibilidade é `physical - reserved`.
+- Catálogo público integrado com `availability.availableQuantity` e `availability.availableForPurchase`, sem exposição de físico, reservado ou dados administrativos.
+- Documentação, testes focados, registros de execução e build atualizados.
+
+### Evidências
+
+- `InventoryIntegrationTest`: 8 testes aprovados, 0 falhas, 0 erros e 0 ignorados.
+- `clean verify`: 41 testes aprovados, 0 falhas, 0 erros e 0 ignorados; JAR executável gerado.
+- Smoke HTTP isolado: 16 cenários aprovados com ADMIN, CUSTOMER, anônimo, CSRF, idempotência, histórico, OpenAPI e catálogo público.
+- Restart: health 200, saldo físico 5, reservado 0, disponível 5, disponibilidade pública 5 e uma movimentação preservados; Flyway validou V1–V4 sem reaplicação.
+- Provisionamento ADMIN sintético executado duas vezes com código 0; a segunda execução foi idempotente. PostgreSQL e Mailpit dedicados foram parados com `stop`, sem remoção do volume.
+
+### Limites e próxima etapa
+
+Expiração automática, pedidos, checkout, carrinho, baixa por devolução física e reconciliação operacional permanecem fora da Fase 5 e serão tratados nas fases correspondentes. A Fase 5 está concluída e validada quanto ao escopo local documentado; a Fase 6 não foi iniciada.
+
+Commit local previsto para esta entrega: `feat: implement inventory management and stock reservations`. Push e deploy não foram realizados.
+
+## Atualização — Fase 5
+
+### Estado da implementação
+
+A implementação da Fase 5 foi criada e posteriormente validada. A migration V4, o domínio `inventory`, os endpoints administrativos de saldo/entrada/histórico e a integração de disponibilidade no catálogo foram criados. Reservas, confirmação e liberação são serviços internos; carrinho, pedidos, checkout e expiração automática não foram iniciados.
+
+### Evidências parciais
+
+- JDK 17.0.16 confirmado pelo Maven Wrapper.
+- Docker Desktop foi iniciado sem alterar o Compose de desenvolvimento nem volumes existentes.
+- `InventoryIntegrationTest`: 8 testes, 0 falhas, 0 erros e 0 ignorados, incluindo migration V4, HTTP/CSRF, disponibilidade pública, reserva concorrente da última unidade e transições terminais concorrentes.
+- Compilação principal e de testes aprovadas; os resultados finais de `clean verify`, smoke HTTP e persistência após reinicialização estão registrados na atualização final desta fase.
+
+### Próxima verificação
+
+Executar a suíte completa, revisar OpenAPI e contratos, realizar smoke isolado quando possível, registrar resultados e criar o commit local da Fase 5. A Fase 6 não será iniciada automaticamente.
+
 ## Evidências da revisão
 
 - `Docs/ROADMAP_BACKEND.md` e `Docs/ROADMAP_FRONTEND.md` foram lidos e preservados.

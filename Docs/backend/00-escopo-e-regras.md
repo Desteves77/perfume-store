@@ -158,3 +158,13 @@ Pedido recebido, pagamento reconhecido, envio e recuperação de senha geram eve
 ## 10. Relação com o frontend
 
 O frontend pode formatar BRL e datas para apresentação, mas não pode somar, confirmar, reservar, aplicar descontos, estimar disponibilidade ou decidir ações comerciais. A API retorna valores monetários como strings decimais, disponibilidade e ações permitidas. Respostas privadas usam `Cache-Control: no-store` ou política equivalente; catálogos públicos só são cacheados segundo uma política que tolere a validade definida pelo backend.
+
+## 11. Delimitação executável do estoque na Fase 5
+
+A Fase 5 materializa saldo por apresentação com `physical_quantity`, `reserved_quantity` e disponibilidade calculada como `physical_quantity - reserved_quantity`. A migration inicializa nenhuma quantidade positiva: uma apresentação existente ou nova começa com saldo zero quando o saldo é materializado sob demanda.
+
+As operações administrativas de entrada exigem quantidade positiva; `ADJUSTMENT` aceita um delta inteiro não nulo, inclusive negativo, desde que o físico não fique abaixo do reservado. Ambas exigem motivo, chave de idempotência e administrador. A baixa física de uma venda acontece na confirmação de uma reserva. Devoluções e reposição após inspeção permanecem operações específicas de fases posteriores.
+
+Reservas persistidas usam os estados `ACTIVE`, `CONFIRMED` e `RELEASED`. Confirmação e liberação são transições terminais idempotentes para repetições do mesmo estado e incompatíveis entre si. Não há expiração automática na Fase 5; `expires_at` fica reservado para a integração do pedido na Fase 8.
+
+O catálogo público expõe somente `availability.availableQuantity` e `availability.availableForPurchase`. Produto publicado com disponibilidade zero continua visível; falta de estoque não desativa, exclui ou despublica produto ou apresentação.

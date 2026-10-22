@@ -89,6 +89,25 @@ O smoke usou somente dados sintéticos. Os cenários de upload inválido, MIME i
 
 O teste `CatalogIntegrationTest` foi executado com PostgreSQL 18.6 real via Testcontainers: 4 testes, 0 falhas, 0 erros e 0 ignorados. A suíte completa posterior deve confirmar a regressão das fases anteriores e o artefato executável.
 
+## Evidências da Fase 5
+
+| ID | Regra verificada | Resultado esperado | Tipo | Fase |
+|---|---|---|---|---|
+| VAL-068 | Saldo por apresentação | linha sob demanda começa em zero; apresentações são independentes | PostgreSQL/Testcontainers | 5 |
+| VAL-069 | Entrada e histórico | entrada positiva atualiza físico/disponível e registra ator, motivo e saldos | MockMvc + PostgreSQL | 5 |
+| VAL-070 | Ajuste inválido/idempotência | quantidade não positiva é rejeitada; reenvio não duplica; chave divergente retorna 409 | integração transacional | 5 |
+| VAL-071 | Reserva acima da disponibilidade | 409 `INSUFFICIENT_STOCK`; nenhum saldo ou histórico parcial | PostgreSQL | 5 |
+| VAL-072 | Reserva da última unidade concorrente | exatamente uma aceita; saldo nunca fica negativo | threads + PostgreSQL real | 5 |
+| VAL-073 | Confirmação e liberação repetidas | efeito físico/reservado ocorre uma vez; terminais incompatíveis retornam 409 | PostgreSQL | 5 |
+| VAL-074 | Terminais concorrentes | uma transição prevalece; um movimento terminal é persistido | threads + locks PostgreSQL | 5 |
+| VAL-075 | Autorização e CSRF | ADMIN autorizado; CUSTOMER/anônimo e escrita sem CSRF rejeitados | MockMvc/Security | 5 |
+| VAL-076 | Catálogo e disponibilidade | quantidade real aparece no recorte público sem físico/reservado; produto sem estoque continua publicado | MockMvc + PostgreSQL | 5 |
+| VAL-077 | Migration e regressão | V4 aplica após V1–V3 e a suíte anterior permanece verde | clean verify | 5 |
+
+### Resultados da execução da Fase 5
+
+`InventoryIntegrationTest` executou 8 testes com 8 aprovações, 0 falhas, 0 erros e 0 ignorados, incluindo concorrência real no PostgreSQL. `clean verify` executou 41 testes com 41 aprovações, 0 falhas, 0 erros e 0 ignorados. O smoke HTTP no banco isolado executou 16 cenários aprovados e a verificação após restart preservou físico 5, reservado 0, disponível 5, disponibilidade pública 5 e uma movimentação. V1–V4 foram validadas pelo Flyway sem reaplicação na reinicialização. Os detalhes operacionais estão em `Docs/execucoes/FASE_05_TESTES.md`.
+
 ## Evidências executadas na Fase 3
 
 | ID | Regra verificada | Resultado observado | Tipo de verificação | Fase |

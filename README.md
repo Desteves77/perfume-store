@@ -191,7 +191,7 @@ Os endpoints públicos do catálogo são `GET /api/v1/catalog/categories`, `GET 
 
 O armazenamento local usa `CATALOG_IMAGE_STORAGE_ROOT`, por padrão `backend/data/catalog-images`, fora do classpath e ignorado pelo Git. São aceitos PNG e JPEG decodificáveis, até 5 MiB, 8 imagens ativas por produto e 20 milhões de pixels. O servidor gera as chaves dos arquivos e não expõe caminhos físicos. Imagens removidas logicamente mantêm o metadado para recuperação; a limpeza física deve ser feita por rotina operacional futura, depois de reconciliar referências.
 
-O catálogo não informa estoque ou disponibilidade comprável nesta fase. A migration `V3__create_catalog_tables.sql` não cria tabelas de estoque, carrinho ou pedidos. Para executar os testes do catálogo com PostgreSQL real:
+Na Fase 4, o catálogo ainda não informava estoque ou disponibilidade comprável. A Fase 5 adiciona essa informação por meio de `availability`; a migration `V3__create_catalog_tables.sql` continua sem tabelas de estoque, carrinho ou pedidos. Para executar os testes do catálogo com PostgreSQL real:
 
 ```powershell
 Set-Location backend
@@ -278,3 +278,37 @@ Set-Location backend
 O processo dedicado encerra depois de criar ou reconhecer o ADMIN sintético. Para iniciar a aplicação, desative `ADMIN_PROVISIONING_ENABLED`, use `SERVER_PORT=18080` e execute `spring-boot:run` com o perfil `local`. O smoke HTTP e a reinicialização usados na homologação estão registrados em `Docs/execucoes/FASE_04_1_*.md`; os logs longos locais ficam em `Docs/execucoes/logs/`.
 
 Para parar somente os containers da homologação e preservar o volume, use `docker compose ... stop`. Para remover futuramente somente esse ambiente, depois de confirmar a decisão, use o mesmo projeto Compose com `down` sem afetar o `compose.yaml`, remova o volume nomeado do projeto e então o diretório `acceptance-data`; não use comandos globais de limpeza. O storage local foi validado, mas ainda não é um storage durável de produção.
+
+### Estoque e disponibilidade — Fase 5
+
+O estoque pertence à apresentação. `availableQuantity` é calculado pelo backend como `physicalQuantity - reservedQuantity`; uma apresentação sem saldo materializado começa em zero. O catálogo público expõe somente `availability.availableQuantity` e `availability.availableForPurchase`. Produto publicado sem estoque continua visível como indisponível.
+
+Administração usa `GET /api/v1/admin/inventory/presentations/{presentationId}`, `POST /api/v1/admin/inventory/adjustments` e `GET /api/v1/admin/inventory/movements`. O POST exige sessão ADMIN, CSRF e header `Idempotency-Key`; `ENTRY` possui `quantity` positiva e `ADJUSTMENT` recebe delta inteiro não nulo, sem permitir que o físico fique abaixo do reservado. O histórico não é editável nem removível.
+
+Reserva, confirmação e liberação são serviços internos de `InventoryService`, sem endpoints de teste. A Fase 5 não implementa expiração automática, pedido, checkout ou baixa por devolução. Os locks de saldo são PostgreSQL `FOR UPDATE`; o fluxo futuro de pedido deverá ordenar locks de múltiplas apresentações.
+
+Para executar os testes com o JDK documentado:
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Zulu\zulu-17'
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+Set-Location backend
+.\mvnw.cmd --batch-mode clean verify
+```
+
+Os relatórios ficam em `backend/target/surefire-reports/`. A migration V4 é aplicada pelo Flyway; não use `clean`, `repair` ou `ddl-auto` contra banco de desenvolvimento. Os registros da execução estão em `Docs/execucoes/FASE_05_RELATORIO.md`, `FASE_05_COMANDOS.md` e `FASE_05_TESTES.md`.
+
+### Homologação isolada do estoque — Fase 5
+
+O smoke HTTP da Fase 5 usa um arquivo local `.env.phase5`, ignorado pelo Git, com PostgreSQL, volume, portas e credenciais sintéticas próprios. O ambiente usado nesta execução foi o projeto Compose `perfumestore-phase5`, com PostgreSQL em `127.0.0.1:56100`, Mailpit em `11125/18125` e aplicação em `18180`. Não reutilize o `.env` ou o volume do desenvolvimento.
+
+Depois de preparar `.env.phase5` com valores locais sintéticos e confirmar as portas, valide e inicie apenas os serviços isolados:
+
+```powershell
+docker compose -p perfumestore-phase5 -f compose.catalog-acceptance.yaml --env-file .env.phase5 config --quiet
+docker compose -p perfumestore-phase5 -f compose.catalog-acceptance.yaml --env-file .env.phase5 up -d postgres mailpit
+```
+
+O primeiro ADMIN deve ser criado pelo perfil dedicado já documentado na Fase 3, com `SERVER_PORT=0` e as variáveis `ADMIN_PROVISIONING_*` fornecidas somente pela sessão do processo. Para a aplicação normal, carregue as variáveis do arquivo, use `ADMIN_PROVISIONING_ENABLED=false` e `SERVER_PORT=18180`. O fluxo de reserva não é exposto por HTTP nesta fase; entradas e ajustes são exercitados por `POST /api/v1/admin/inventory/adjustments`, e a disponibilidade é conferida no catálogo público. Os testes automatizados cobrem reservas, confirmação, liberação e concorrência com PostgreSQL real.
+
+Ao terminar, pare somente os serviços do projeto isolado com `docker compose -p perfumestore-phase5 -f compose.catalog-acceptance.yaml --env-file .env.phase5 stop postgres mailpit`; o volume próprio permanece para repetir a homologação. Não use `down -v`, `docker system prune` ou comandos globais de limpeza. Os logs locais e os dados sintéticos ficam fora do versionamento.

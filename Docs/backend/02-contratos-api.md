@@ -341,7 +341,7 @@ Os caminhos abaixo são a primeira implementação executável do contrato de ca
 | `GET/POST/PATCH /api/v1/admin/products/{productId}/presentations...` | ADMIN | manter apresentações, SKU, volume, preço e estado | `200`, `201`, `404`, `409`, `422` |
 | `GET/POST/DELETE /api/v1/admin/products/{productId}/images...` | ADMIN | listar, enviar, ordenar, definir principal, remover logicamente e consultar preview | `200`, `201`, `204`, `404`, `409`, `413`, `415`, `422` |
 
-Todas as operações administrativas que alteram estado exigem o cookie de sessão e CSRF conforme a Fase 3. Upload aceita somente `image/png` ou `image/jpeg` cujo conteúdo seja decodificável como PNG/JPEG; o limite é 5 MiB, 8 imagens ativas por produto e 20.000.000 de pixels. A resposta de apresentação usa `price.amount` como string decimal com escala 2 e `price.currency` `BRL`. A resposta pública não contém quantidade ou disponibilidade de estoque; produto publicado nesta fase significa catálogo visível, não produto necessariamente comprável.
+Todas as operações administrativas que alteram estado exigem o cookie de sessão e CSRF conforme a Fase 3. Upload aceita somente `image/png` ou `image/jpeg` cujo conteúdo seja decodificável como PNG/JPEG; o limite é 5 MiB, 8 imagens ativas por produto e 20.000.000 de pixels. A resposta de apresentação usa `price.amount` como string decimal com escala 2 e `price.currency` `BRL`. Na implementação da Fase 4, a resposta não continha estoque; desde a Fase 5, ela inclui somente `availability.availableQuantity` e `availability.availableForPurchase`, sem expor físico ou reservado. Produto publicado continua significando catálogo visível, não produto necessariamente comprável.
 
 Categorias, produtos e apresentações usam controle de concorrência otimista por `version`. Reenvio com versão antiga retorna `409 CONCURRENT_UPDATE`; conflitos de slug/SKU retornam `409`. Produto ativo exige categoria ativa, apresentação ativa e uma imagem principal; a consulta pública aplica essa regra novamente, de forma que desativar a categoria oculta os produtos sem mutar seu estado.
 
@@ -387,3 +387,32 @@ Exemplo de recuperação:
 O provisionamento do primeiro ADMIN não possui endpoint HTTP. Ele é executado por processo dedicado, com perfil `provision-admin`, variáveis externas e `spring.main.web-application-type=none`.
 
 Os endpoints de catálogo, endereços, carrinho, pedidos e administração comercial continuam planejados no contrato original e não são apresentados como implementados.
+
+## 10. Implementação da Fase 5
+
+As respostas de apresentação do catálogo agora incluem somente o recorte público:
+
+```json
+{
+  "id": "00000000-0000-0000-0000-000000000001",
+  "sku": "TEST-50",
+  "price": { "amount": "199.90", "currency": "BRL" },
+  "active": true,
+  "availability": {
+    "availableQuantity": 4,
+    "availableForPurchase": true
+  }
+}
+```
+
+Quantidade física, quantidade reservada, movimentações, chaves de reserva e atores administrativos não aparecem no catálogo público. Disponibilidade zero retorna `availableForPurchase: false` e não muda a publicação editorial.
+
+| Método e caminho | Acesso | Finalidade | Status |
+|---|---|---|---|
+| `GET /api/v1/admin/inventory/presentations/{presentationId}` | ADMIN | consulta físico, reservado, disponível e versão | `200`, `401`, `403`, `404` |
+| `POST /api/v1/admin/inventory/adjustments` | ADMIN + CSRF | registra entrada positiva ou delta de ajuste físico não nulo com `presentationId`, `quantity`, `type` (`ENTRY`/`ADJUSTMENT`) e `reason` | `201`, `400`, `401`, `403`, `404`, `409`, `422` |
+| `GET /api/v1/admin/inventory/movements` | ADMIN | histórico paginado; filtro opcional por `presentationId`; ordenação `createdAt` ou `type` | `200`, `400`, `401`, `403` |
+
+`POST /admin/inventory/adjustments` exige `Idempotency-Key` com 8–100 caracteres seguros. `ENTRY` exige quantidade positiva; `ADJUSTMENT` aceita delta positivo ou negativo, mas nunca zero nem uma redução que deixe o físico abaixo do reservado. A mesma chave e conteúdo retorna o saldo sem novo efeito; a mesma chave com conteúdo diferente retorna `409 IDEMPOTENCY_KEY_REUSED`. O histórico é somente leitura pela API.
+
+Reserva, confirmação e liberação são serviços internos de `inventory`, preparados para o módulo de pedidos. As chaves de reserva são persistidas e únicas; repetição do mesmo terminal é no-op e transição terminal incompatível retorna `409`.

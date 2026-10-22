@@ -24,6 +24,7 @@ Thumbs.db
 logs/
 docker-data/
 backend/data/
+phase5-data/
 backend/target/test-catalog-images/
 acceptance-data/
 acceptance-logs/

@@ -21,6 +21,7 @@ import com.perfumestore.backend.shared.api.MoneyResponse;
 import com.perfumestore.backend.shared.api.PageQuery;
 import com.perfumestore.backend.shared.api.PageResponse;
 import com.perfumestore.backend.shared.api.SortOrder;
+import com.perfumestore.backend.shared.inventory.InventoryAvailabilityReader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,16 +44,18 @@ public class CatalogService {
     private final ImageRepository images;
     private final ImageStorage imageStorage;
     private final CatalogImageProperties imageProperties;
+    private final InventoryAvailabilityReader availability;
 
     public CatalogService(CategoryRepository categories, ProductRepository products,
             PresentationRepository presentations, ImageRepository images, ImageStorage imageStorage,
-            CatalogImageProperties imageProperties) {
+            CatalogImageProperties imageProperties, InventoryAvailabilityReader availability) {
         this.categories = categories;
         this.products = products;
         this.presentations = presentations;
         this.images = images;
         this.imageStorage = imageStorage;
         this.imageProperties = imageProperties;
+        this.availability = availability;
     }
 
     @Transactional
@@ -163,9 +166,11 @@ public class CatalogService {
         Map<UUID, List<PresentationRecord>> pres = presentations.findByProducts(
                 records.stream().map(ProductRecord::id).toList(), true);
         Map<UUID, List<ImageRecord>> imageMap = images.findByProducts(records.stream().map(ProductRecord::id).toList(), true);
+        Map<UUID, Integer> available = availability.availableByPresentationIds(pres.values().stream()
+                .flatMap(List::stream).map(PresentationRecord::id).toList());
         List<CatalogDtos.ProductSummary> items = records.stream()
                 .map(record -> summary(record, pres.getOrDefault(record.id(), List.of()),
-                        imageMap.getOrDefault(record.id(), List.of())))
+                        imageMap.getOrDefault(record.id(), List.of()), available))
                 .toList();
         return new PageResponse<>(items, query.getPage(), query.getSize(), total,
                 PageResponse.totalPages(total, query.getSize()),
@@ -195,9 +200,9 @@ public class CatalogService {
         BigDecimal volume = CatalogRules.scaleVolume(request.volume());
         BigDecimal price = CatalogRules.scaleMoney(request.price());
         try {
-            return presentationResponse(presentations.insert(UUID.randomUUID(), productId, CatalogRules.text(request.sku()),
+            return presentationResponses(List.of(presentations.insert(UUID.randomUUID(), productId, CatalogRules.text(request.sku()),
                     CatalogRules.sku(request.sku()), volume, "ML", price,
-                    request.active() == null || request.active(), Instant.now()));
+                    request.active() == null || request.active(), Instant.now()))).get(0);
         } catch (DuplicateKeyException exception) {
             throw CatalogRules.conflict("O SKU já está cadastrado.");
         }
@@ -218,10 +223,10 @@ public class CatalogService {
                     "Um produto publicado precisa manter pelo menos uma apresentação ativa.");
         }
         try {
-            return presentationResponse(presentations.update(presentationId, productId, CatalogRules.text(request.sku()),
+            return presentationResponses(List.of(presentations.update(presentationId, productId, CatalogRules.text(request.sku()),
                     CatalogRules.sku(request.sku()), CatalogRules.scaleVolume(request.volume()),
                     CatalogRules.scaleMoney(request.price()), request.active() == null || request.active(),
-                    request.version(), Instant.now()).orElseThrow(() -> versionConflict("apresentação")));
+                    request.version(), Instant.now()).orElseThrow(() -> versionConflict("apresentação")))).get(0);
         } catch (DuplicateKeyException exception) {
             throw CatalogRules.conflict("O SKU já está cadastrado.");
         }
@@ -229,7 +234,7 @@ public class CatalogService {
 
     public List<CatalogDtos.PresentationResponse> adminPresentations(UUID productId) {
         requireProduct(productId);
-        return presentations.findByProduct(productId, false).stream().map(this::presentationResponse).toList();
+        return presentationResponses(presentations.findByProduct(productId, false));
     }
 
     @Transactional
@@ -345,7 +350,7 @@ public class CatalogService {
                 && imageList.stream().anyMatch(ImageRecord::primary);
         return new CatalogDtos.AdminProductDetail(product.id(), product.slug(), product.name(), product.brand(),
                 product.description(), categoryResponse(product), product.active(), publishable, product.version(),
-                product.createdAt(), product.updatedAt(), pres.stream().map(this::presentationResponse).toList(),
+                product.createdAt(), product.updatedAt(), presentationResponses(pres),
                 imageList.stream().map(image -> adminImageResponse(image, product.slug())).toList());
     }
 
@@ -353,16 +358,16 @@ public class CatalogService {
             List<ImageRecord> imageList) {
         return new CatalogDtos.ProductDetail(product.id(), product.slug(), product.name(), product.brand(),
                 product.description(), categoryResponse(product), product.active(), true, product.version(),
-                product.createdAt(), product.updatedAt(), pres.stream().map(this::presentationResponse).toList(),
+                product.createdAt(), product.updatedAt(), presentationResponses(pres),
                 imageList.stream().map(image -> imageResponse(image, product.slug())).toList());
     }
 
     private CatalogDtos.ProductSummary summary(ProductRecord product, List<PresentationRecord> pres,
-            List<ImageRecord> imageList) {
+            List<ImageRecord> imageList, Map<UUID, Integer> available) {
         return new CatalogDtos.ProductSummary(product.id(), product.slug(), product.name(), product.brand(),
                 categoryResponse(product), product.active(), product.published(!pres.isEmpty(),
                         imageList.stream().anyMatch(ImageRecord::primary)), product.version(),
-                pres.stream().map(this::presentationResponse).toList(),
+                presentationResponses(pres, available),
                 imageList.stream().map(image -> imageResponse(image, product.slug())).toList());
     }
 
@@ -377,11 +382,22 @@ public class CatalogService {
                 product.categoryUpdatedAt());
     }
 
-    private CatalogDtos.PresentationResponse presentationResponse(PresentationRecord presentation) {
-        return new CatalogDtos.PresentationResponse(presentation.id(), presentation.productId(), presentation.sku(),
-                presentation.volume(), presentation.unit(), new MoneyResponse(presentation.price(), "BRL"),
-                presentation.currency(), presentation.active(), presentation.version(), presentation.createdAt(),
-                presentation.updatedAt());
+    private List<CatalogDtos.PresentationResponse> presentationResponses(List<PresentationRecord> records) {
+        Map<UUID, Integer> available = availability.availableByPresentationIds(
+                records.stream().map(PresentationRecord::id).toList());
+        return presentationResponses(records, available);
+    }
+
+    private List<CatalogDtos.PresentationResponse> presentationResponses(List<PresentationRecord> records,
+            Map<UUID, Integer> available) {
+        return records.stream().map(presentation -> {
+            int quantity = available.getOrDefault(presentation.id(), 0);
+            return new CatalogDtos.PresentationResponse(presentation.id(), presentation.productId(), presentation.sku(),
+                    presentation.volume(), presentation.unit(), new MoneyResponse(presentation.price(), "BRL"),
+                    presentation.currency(), presentation.active(), presentation.version(), presentation.createdAt(),
+                    presentation.updatedAt(), new CatalogDtos.AvailabilityResponse(quantity,
+                            presentation.active() && quantity > 0));
+        }).toList();
     }
 
     private CatalogDtos.ImageResponse imageResponse(ImageRecord image, String slug) {
