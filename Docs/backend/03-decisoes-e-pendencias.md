@@ -141,3 +141,17 @@ As referências oficiais usadas para a integração são [Spring Session JDBC](h
 - Integrar `InventoryService` ao módulo de pedidos para converter reservas após pagamento válido; bloqueia as Fases 8 e 9.
 - Definir procedimentos de devolução física, inspeção e eventual reposição; não é substituído por reembolso financeiro.
 - Avaliar limite operacional e auditoria externa para saldos muito grandes; a implementação atual limita quantidades a `integer` PostgreSQL/Java.
+
+## 14. Decisões técnicas registradas na Fase 6
+
+- Endereços são recursos privados sob /api/v1/me/addresses; o usuário vem da sessão, nunca do payload. A remoção é lógica e a atualização usa version para evitar sobrescrita silenciosa.
+- CEP é normalizado sem hífen e com zeros preservados; UF é validada contra o conjunto brasileiro. Não há confirmação externa de existência do endereço.
+- Frete é consultado por cliente autenticado, com CSRF, usando addressId próprio. A regra simples por faixa de CEP, valor BRL e prazo é configurada por ambiente; a cotação persistida guarda validade e versão.
+- O perfil local/teste aceita somente parâmetros sintéticos documentados. O perfil de produção não habilita frete por padrão, não tem tarifa/faixa de fallback e falha de forma segura sem configuração.
+- A V5 foi criada sem alterar V1–V4; não há tabela de regra comercial administrável nesta fase.
+
+## 15. Pendências após a Fase 6
+
+- Definir a área de atendimento real, modalidade, tarifa, unidade do prazo e prazos efetivos. Bloqueia a homologação comercial e a habilitação do perfil de produção, mas não bloqueia a implementação técnica local.
+- Decidir eventual integração de CEP, transportadora e armazenamento de tabela comercial. Fica para a fase de integrações, sem dependência criada agora.
+- Integrar a validação de propriedade, recálculo e snapshot de endereço/frete ao carrinho e checkout das fases 7/8.

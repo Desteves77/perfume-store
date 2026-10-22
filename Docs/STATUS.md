@@ -210,3 +210,29 @@ A Fase 4 está fechada quanto ao escopo de catálogo local e sua homologação i
 ### Próxima etapa
 
 Fase 5 do roadmap, sem início automático nesta entrega.
+
+## Atualização — Fase 6
+
+### Entregas
+
+- Endereços persistidos por cliente na V5, com CEP normalizado, UF validada, paginação, atualização otimista e remoção lógica.
+- Endpoints GET/POST/PATCH/DELETE /api/v1/me/addresses com isolamento por sessão e CSRF nas escritas.
+- Serviço de frete configurável por faixas de CEP, persistência de cotação, BRL decimal, prazo estimado e versão da regra.
+- Endpoint autenticado POST /api/v1/shipping/quotes, sem dependência de carrinho ou pedido.
+- Configurações separadas para local, teste e produção; produção não oferece tarifa ou faixa de fallback.
+- Ambiente Compose isolado, com PostgreSQL, Mailpit, volume e portas próprios, preservado parado para reprodução.
+
+### Evidências
+
+- AddressShippingIntegrationTest: 8 testes aprovados com PostgreSQL real, incluindo validação, IDOR, CSRF, cotação e configuração.
+- clean verify: 49 testes aprovados, 0 falhas, 0 erros e 0 ignorados; JAR executável gerado.
+- Smoke HTTP isolado: 19 cenários aprovados, incluindo dois clientes, endereço próprio, tentativa de acesso cruzado, CSRF, cotação atendida/não atendida, remoção lógica e persistência.
+- Reinicialização do PostgreSQL e da aplicação preservou 6 endereços ativos, 8 cotações e Flyway na versão 5; V1–V4 permaneceram intactas.
+
+### Limitações e pendências
+
+A área de atendimento, tarifa, modalidade e prazo reais continuam pendentes de decisão comercial. A configuração sintética usada no perfil local/teste não é uma condição comercial homologada e não habilita o perfil de produção. Integração de CEP, transportadora, carrinho, checkout, pedido e pagamento permanecem nas fases posteriores.
+
+### Situação
+
+Implementação técnica da Fase 6 validada localmente. A configuração comercial real de entrega permanece pendente. A Fase 7 não foi iniciada.

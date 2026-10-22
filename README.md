@@ -312,3 +312,21 @@ docker compose -p perfumestore-phase5 -f compose.catalog-acceptance.yaml --env-f
 O primeiro ADMIN deve ser criado pelo perfil dedicado já documentado na Fase 3, com `SERVER_PORT=0` e as variáveis `ADMIN_PROVISIONING_*` fornecidas somente pela sessão do processo. Para a aplicação normal, carregue as variáveis do arquivo, use `ADMIN_PROVISIONING_ENABLED=false` e `SERVER_PORT=18180`. O fluxo de reserva não é exposto por HTTP nesta fase; entradas e ajustes são exercitados por `POST /api/v1/admin/inventory/adjustments`, e a disponibilidade é conferida no catálogo público. Os testes automatizados cobrem reservas, confirmação, liberação e concorrência com PostgreSQL real.
 
 Ao terminar, pare somente os serviços do projeto isolado com `docker compose -p perfumestore-phase5 -f compose.catalog-acceptance.yaml --env-file .env.phase5 stop postgres mailpit`; o volume próprio permanece para repetir a homologação. Não use `down -v`, `docker system prune` ou comandos globais de limpeza. Os logs locais e os dados sintéticos ficam fora do versionamento.
+
+### Endereços e frete — Fase 6
+
+A Fase 6 implementa endereços privados em GET/POST/PATCH/DELETE /api/v1/me/addresses e a consulta autenticada POST /api/v1/shipping/quotes. O CEP é validado e armazenado com oito dígitos, a UF é validada contra as UFs brasileiras e a remoção de endereço é lógica. O proprietário é sempre derivado da sessão; identificadores enviados pelo cliente não concedem acesso.
+
+O endpoint de frete recebe o addressId do próprio cliente e calcula a cotação no backend. A regra inicial usa faixas de CEP configuráveis, valor decimal em BRL e prazo estimado em dias úteis. A cotação é persistida com validade e versão da regra, mas não cria pedido, reserva ou pagamento. A consulta exige sessão e CSRF porque usa um endereço privado e é uma operação POST.
+
+Em desenvolvimento e testes, a configuração local pode usar valores sintéticos. O perfil prod permanece desabilitado por padrão e não oferece fallback de tarifa ou área. Antes de operar comercialmente, o proprietário deve definir e validar a área efetiva, tarifa, prazo e modalidade, fornecendo SHIPPING_ENABLED, SHIPPING_METHOD, SHIPPING_RULE_VERSION, SHIPPING_AMOUNT, SHIPPING_MIN_DAYS, SHIPPING_MAX_DAYS e SHIPPING_SERVED_RANGES por ambiente seguro. Configuração ausente ou inválida não oferece frete.
+
+Para reproduzir a homologação HTTP isolada da Fase 6, prepare somente valores sintéticos no arquivo local ignorado:
+
+    Copy-Item phase6-acceptance.env.example .env.phase6
+    docker compose -p perfumestore-phase6 -f compose.phase6-acceptance.yaml --env-file .env.phase6 config --quiet
+    docker compose -p perfumestore-phase6 -f compose.phase6-acceptance.yaml --env-file .env.phase6 up -d postgres mailpit
+
+O ambiente usa PostgreSQL em 127.0.0.1:56200, SMTP em 127.0.0.1:11225, Mailpit em http://127.0.0.1:18225 e a aplicação em 127.0.0.1:18280. Carregue as variáveis no processo Java; o Spring Boot não lê .env automaticamente. O procedimento completo, incluindo smoke, reinicialização e comandos sanitizados, está em Docs/execucoes/FASE_06_*.md. Para preservar o volume, pare somente os serviços com docker compose ... stop; não use down -v.
+
+Os testes da fase podem ser executados com backend\mvnw.cmd --batch-mode -Dtest=AddressShippingIntegrationTest test e a regressão completa com backend\mvnw.cmd --batch-mode clean verify. A Fase 6 não implementa carrinho, checkout, pedidos, pagamento ou integração externa de CEP/transportadora.

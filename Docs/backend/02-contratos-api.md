@@ -416,3 +416,48 @@ Quantidade física, quantidade reservada, movimentações, chaves de reserva e a
 `POST /admin/inventory/adjustments` exige `Idempotency-Key` com 8–100 caracteres seguros. `ENTRY` exige quantidade positiva; `ADJUSTMENT` aceita delta positivo ou negativo, mas nunca zero nem uma redução que deixe o físico abaixo do reservado. A mesma chave e conteúdo retorna o saldo sem novo efeito; a mesma chave com conteúdo diferente retorna `409 IDEMPOTENCY_KEY_REUSED`. O histórico é somente leitura pela API.
 
 Reserva, confirmação e liberação são serviços internos de `inventory`, preparados para o módulo de pedidos. As chaves de reserva são persistidas e únicas; repetição do mesmo terminal é no-op e transição terminal incompatível retorna `409`.
+
+## Endereços e frete — implementado na Fase 6
+
+Os contratos abaixo são os endpoints efetivamente implementados. Eles não substituem os contratos planejados de checkout e pedido.
+
+| Método e caminho | Acesso | Finalidade | Status relevantes |
+|---|---|---|---|
+| GET /api/v1/me/addresses?page=0&size=20&sort=createdAt,desc | CUSTOMER autenticado | Lista endereços ativos do próprio cliente | 200, 400, 401 |
+| POST /api/v1/me/addresses | CUSTOMER + CSRF | Cria endereço do cliente da sessão | 201, 401, 403, 422 |
+| GET /api/v1/me/addresses/{addressId} | CUSTOMER autenticado | Consulta endereço próprio | 200, 401, 404 |
+| PATCH /api/v1/me/addresses/{addressId} | CUSTOMER + CSRF | Atualiza campos permitidos com version | 200, 401, 403, 404, 409, 422 |
+| DELETE /api/v1/me/addresses/{addressId} | CUSTOMER + CSRF | Remove logicamente endereço próprio | 204, 401, 403, 404, 409 |
+| POST /api/v1/shipping/quotes | CUSTOMER autenticado + CSRF | Calcula e persiste cotação para endereço próprio | 200, 401, 403, 404, 422, 503 |
+
+O CEP aceita oito dígitos ou o formato NNNNN-NNN e é retornado sem hífen. O estado é retornado em maiúsculas. A listagem tem os limites compartilhados de paginação e whitelist de ordenação (id, createdAt, updatedAt, label, city). Respostas privadas não devem ser armazenadas em cache compartilhado.
+
+Exemplo de criação:
+
+    {
+      "recipientName": "Cliente Teste",
+      "label": "Casa",
+      "postalCode": "01311-000",
+      "street": "Avenida Paulista",
+      "number": "1000",
+      "complement": "Apto 10",
+      "neighborhood": "Bela Vista",
+      "city": "São Paulo",
+      "state": "SP",
+      "reference": "Portaria"
+    }
+
+Exemplo de cotação atendida:
+
+    {
+      "quoteId": "00000000-0000-0000-0000-000000000000",
+      "serviceable": true,
+      "method": "INITIAL_RULE_TEST",
+      "amount": "15.90",
+      "currency": "BRL",
+      "estimatedDelivery": { "minDays": 3, "maxDays": 6, "dayType": "BUSINESS" },
+      "ruleVersion": "test-synthetic-v1",
+      "expiresAt": "2026-01-01T12:00:00Z"
+    }
+
+O exemplo usa identificador, data, tarifa e prazo ilustrativos. Em cada ambiente, os valores retornados vêm de app.shipping; local/teste podem usar uma regra sintética, enquanto produção permanece sem oferta até receber configuração comercial explícita. Destino fora da área retorna 422 SHIPPING_DESTINATION_UNSERVED; configuração ausente ou inválida retorna 503 SHIPPING_UNCONFIGURED.

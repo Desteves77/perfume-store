@@ -170,3 +170,11 @@ A migration `V4__create_inventory_tables.sql` cria `inventory_balances`, `stock_
 `InventoryService` bloqueia a linha de saldo com `SELECT ... FOR UPDATE` dentro da transação. Reserva, confirmação, liberação e entrada/ajuste gravam saldo, reserva e histórico na mesma transação. A unicidade das chaves e as constraints do PostgreSQL permanecem como defesa final. Como a Fase 5 opera uma apresentação por chamada, a ordem de lock é única; o futuro checkout deverá ordenar locks por `presentation_id` ao reservar múltiplas linhas.
 
 O serviço expõe portas internas para reservar, confirmar e liberar, sem endpoint público ou endpoint administrativo de teste. A expiração automática não foi iniciada nesta fase e será definida com o ciclo de pedidos.
+
+## 8. Endereços e frete na Fase 6
+
+O módulo address usa AddressController, AddressService e AddressRepository. addresses possui UUID estável, FK para app_users, campos civis do destino, version, timestamps e deleted_at. O índice por proprietário, remoção e atualização sustenta a listagem privada. A propriedade é verificada na consulta SQL e no serviço; o DTO não recebe userId.
+
+O módulo shipping usa ShippingProperties, ShippingService e ShippingQuoteRepository. A regra de atendimento é configuração externa de faixas de CEP, validada contra formatos, inversões e sobreposições. shipping_quotes guarda apenas o snapshot necessário do destino, modalidade, valor numeric(12,2) em BRL, prazo, versão e validade. A persistência não representa pedido nem reserva.
+
+A V5 adiciona as duas tabelas e índices sem alterar V1–V4. A FK de endereços usa ON DELETE RESTRICT; a remoção normal é lógica. Cotações não são expostas no catálogo nem em respostas de outros clientes. O futuro checkout deve revalidar a cotação e criar o snapshot comercial do pedido.

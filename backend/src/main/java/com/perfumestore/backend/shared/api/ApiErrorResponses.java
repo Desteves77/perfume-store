@@ -28,6 +28,7 @@ public final class ApiErrorResponses {
             case 415 -> "Tipo de mídia não suportado";
             case 422 -> "Dados inválidos";
             case 429 -> "Muitas tentativas";
+            case 503 -> "Serviço indisponível";
             default -> status >= 500 ? "Erro interno" : "Erro na requisição";
         };
     }

@@ -125,3 +125,17 @@ O teste `CatalogIntegrationTest` foi executado com PostgreSQL 18.6 real via Test
 | VAL-051 | Provisionamento ADMIN | runner dedicado cria ADMIN sem senha fixa, é idempotente e não promove CUSTOMER | Spring Boot + PostgreSQL | 3 |
 
 Os comandos, quantidades e relatórios de teste desta execução estão registrados em `Docs/execucoes/FASE_03_TESTES.md`. O smoke com Mailpit deve ser registrado nessa mesma evidência após a execução local.
+
+## Evidências executadas na Fase 6
+
+| ID | Regra verificada | Resultado observado | Tipo de verificação | Fase |
+|---|---|---|---|---|
+| VAL-078 | Cadastro e normalização de endereço | CEP com hífen foi persistido com oito dígitos, UF em maiúsculas e campos inválidos retornaram 422 | PostgreSQL/Testcontainers + MockMvc | 6 |
+| VAL-079 | Isolamento de endereços | cliente B recebeu 404 ao consultar, atualizar ou remover endereço de A; nenhuma alteração ocorreu | integração de segurança/IDOR | 6 |
+| VAL-080 | Remoção e concorrência de endereço | remoção lógica ocultou o registro; versão obsoleta retornou 409 CONCURRENT_UPDATE | integração JDBC/MockMvc | 6 |
+| VAL-081 | Cotação atendida | valor foi calculado no backend como string BRL e prazo foi retornado em dias úteis | PostgreSQL/Testcontainers + MockMvc | 6 |
+| VAL-082 | Destino não atendido e configuração | faixa fora da política retornou 422; configuração incompleta foi rejeitada sem oferecer frete | integração de serviço | 6 |
+| VAL-083 | Sessão e CSRF no frete | anônimo recebeu 401; cliente sem CSRF recebeu 403; cotação válida foi aceita | MockMvc/Spring Security | 6 |
+| VAL-084 | Persistência e migration | seis endereços ativos e oito cotações permaneceram após reinício; Flyway validou V1–V5 sem reaplicar | Compose/PostgreSQL | 6 |
+
+AddressShippingIntegrationTest executou 8 testes aprovados. A suíte clean verify executou 49 testes aprovados, sem falhas, erros ou ignorados. O smoke HTTP isolado executou 19 cenários aprovados; os detalhes e comandos reais estão em Docs/execucoes/FASE_06_TESTES.md e FASE_06_COMANDOS.md.

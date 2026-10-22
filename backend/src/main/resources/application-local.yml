@@ -30,6 +30,16 @@ app:
       max-bytes: ${CATALOG_IMAGE_MAX_BYTES:5242880}
       max-images-per-product: ${CATALOG_IMAGE_MAX_IMAGES:8}
       max-pixels: ${CATALOG_IMAGE_MAX_PIXELS:20000000}
+  shipping:
+    enabled: ${SHIPPING_ENABLED:false}
+    method: ${SHIPPING_METHOD:INITIAL_RULE_LOCAL}
+    rule-version: ${SHIPPING_RULE_VERSION:local-synthetic-v1}
+    amount: ${SHIPPING_AMOUNT:15.90}
+    min-days: ${SHIPPING_MIN_DAYS:3}
+    max-days: ${SHIPPING_MAX_DAYS:6}
+    quote-ttl: ${SHIPPING_QUOTE_TTL:30m}
+    synthetic: ${SHIPPING_SYNTHETIC:true}
+    served-ranges: ${SHIPPING_SERVED_RANGES:01000000-09999999}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
     allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}

@@ -168,3 +168,11 @@ As operações administrativas de entrada exigem quantidade positiva; `ADJUSTMEN
 Reservas persistidas usam os estados `ACTIVE`, `CONFIRMED` e `RELEASED`. Confirmação e liberação são transições terminais idempotentes para repetições do mesmo estado e incompatíveis entre si. Não há expiração automática na Fase 5; `expires_at` fica reservado para a integração do pedido na Fase 8.
 
 O catálogo público expõe somente `availability.availableQuantity` e `availability.availableForPurchase`. Produto publicado com disponibilidade zero continua visível; falta de estoque não desativa, exclui ou despublica produto ou apresentação.
+
+## 12. Endereços e frete na Fase 6
+
+Endereços pertencem exclusivamente ao cliente autenticado pela sessão. O backend ignora qualquer tentativa de definir o proprietário no payload, normaliza o CEP para oito dígitos preservando zeros à esquerda, valida a UF brasileira e aplica limites aos demais campos. A consulta, alteração e remoção filtram simultaneamente por usuário e identificador; um identificador de outro cliente não revela nem altera o registro. A remoção é lógica para preservar referências futuras de pedidos.
+
+A cotação de frete da Fase 6 exige sessão e CSRF, recebe somente o identificador de um endereço próprio e calcula valor e prazo no backend. A política inicial configurável usa faixas de CEP, uma modalidade, valor BRL decimal e prazo estimado em dias úteis. Destino fora das faixas retorna erro estruturado e não gera tarifa substituta. A cotação persistida guarda snapshot mínimo do destino, validade e versão da regra para futura revalidação.
+
+Os valores e faixas locais/teste são sintéticos. A área comercial real, tarifa, modalidade e prazo ainda dependem do proprietário; o perfil de produção permanece sem oferta por padrão e falha de forma segura quando a configuração obrigatória não existe. Não há integração externa de CEP ou transportadora nesta fase.

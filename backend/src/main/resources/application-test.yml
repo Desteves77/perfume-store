@@ -24,6 +24,16 @@ app:
       max-bytes: 5242880
       max-images-per-product: 8
       max-pixels: 20000000
+  shipping:
+    enabled: true
+    method: INITIAL_RULE_TEST
+    rule-version: test-synthetic-v1
+    amount: 15.90
+    min-days: 3
+    max-days: 6
+    quote-ttl: 30m
+    synthetic: true
+    served-ranges: 01000000-09999999
   cors:
     allowed-origins: http://allowed.test
     allow-credentials: true
