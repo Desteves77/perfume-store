@@ -236,3 +236,23 @@ A área de atendimento, tarifa, modalidade e prazo reais continuam pendentes de 
 ### Situação
 
 Implementação técnica da Fase 6 validada localmente. A configuração comercial real de entrega permanece pendente. A Fase 7 não foi iniciada.
+
+## Atualizacao - Fase 7: carrinho persistente
+
+- Carrinhos anonimos usam token opaco em cookie HttpOnly; apenas o hash SHA-256 e persistido em V6. Sem cookie, `GET /api/v1/cart` retorna vazio sem criar registro.
+- Carrinhos autenticados sao identificados pela sessao e possuem um unico carrinho ativo por cliente. O logout invalida a sessao, limpa o cookie visitante e preserva o carrinho da conta.
+- O login combina o carrinho visitante com o carrinho da conta em uma transacao. Linhas da mesma apresentacao somam quantidades; linhas diferentes sao preservadas; o token transferido nao pode ser reutilizado.
+- Precos e disponibilidade sao reconsultados no servidor em cada operacao. O carrinho nao reserva estoque e nao altera fisico, reservado ou historico de movimentacoes.
+- V6 cria `carts`, `cart_items` e `cart_mutation_keys`, com unicidade por proprietario ativo, token e apresentacao. O estado transferido e expirado e preservado para auditoria/limpeza segura.
+
+### Evidencias da execucao
+
+- `CartIntegrationTest`: 9 testes aprovados com PostgreSQL real, incluindo persistencia, idempotencia, merge, claim concorrente, CSRF, isolamento, concorrencia de inclusao e limpeza.
+- `clean verify`: 58 testes aprovados, 0 falhas, 0 erros e 0 ignorados; JAR executavel gerado.
+- Smoke HTTP isolado: 18 cenarios aprovados, incluindo carrinho anonimo, cookie, operacoes, merge no login, logout, isolamento, preco vigente, estoque indisponivel, token invalido e health.
+- Reinicio da aplicacao e do PostgreSQL isolados preservou carrinhos, itens e V6; a consulta final confirmou `reserved_quantity=0` e nenhum movimento de estoque causado pelo carrinho.
+- OpenAPI respondeu `200` e publicou os quatro caminhos reais de carrinho.
+
+### Situacao
+
+Fase 7 implementada e validada localmente. A Fase 8 continua responsavel por checkout, pedido, snapshot de preco/frete e reserva de estoque. O carrinho nao e garantia de compra.

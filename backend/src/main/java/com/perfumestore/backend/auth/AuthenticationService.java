@@ -4,6 +4,7 @@ import java.time.Instant;
 
 import com.perfumestore.backend.config.RateLimitProperties;
 import com.perfumestore.backend.config.SessionCookieProperties;
+import com.perfumestore.backend.cart.CartService;
 import com.perfumestore.backend.shared.api.ApiRequestException;
 import com.perfumestore.backend.user.EmailNormalizer;
 
@@ -24,9 +25,13 @@ import org.springframework.security.web.authentication.session.SessionAuthentica
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.ResponseCookie;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AuthenticationService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationService.class);
 
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
@@ -36,12 +41,14 @@ public class AuthenticationService {
     private final AttemptRateLimiter rateLimiter;
     private final RateLimitProperties rateLimitProperties;
     private final SessionCookieProperties sessionCookieProperties;
+    private final CartService carts;
 
     public AuthenticationService(AuthenticationManager authenticationManager,
             SecurityContextRepository securityContextRepository,
             SessionAuthenticationStrategy sessionAuthenticationStrategy,
             CsrfTokenRepository csrfTokenRepository, UserService users, AttemptRateLimiter rateLimiter,
-            RateLimitProperties rateLimitProperties, SessionCookieProperties sessionCookieProperties) {
+            RateLimitProperties rateLimitProperties, SessionCookieProperties sessionCookieProperties,
+            CartService carts) {
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
         this.sessionAuthenticationStrategy = sessionAuthenticationStrategy;
@@ -50,6 +57,7 @@ public class AuthenticationService {
         this.rateLimiter = rateLimiter;
         this.rateLimitProperties = rateLimitProperties;
         this.sessionCookieProperties = sessionCookieProperties;
+        this.carts = carts;
     }
 
     public AuthDtos.UserResponse login(String email, String password, HttpServletRequest request,
@@ -73,6 +81,13 @@ public class AuthenticationService {
         securityContextRepository.saveContext(context, request, response);
         csrfTokenRepository.saveToken(csrfTokenRepository.generateToken(request), request, response);
         AppUserPrincipal principal = (AppUserPrincipal) authentication.getPrincipal();
+        try {
+            carts.claimVisitorCart(principal.id(), request, response);
+        } catch (RuntimeException exception) {
+            response.setHeader("X-Cart-Merge-Status", "RETRY");
+            LOGGER.warn("Não foi possível associar o carrinho visitante durante o login; a sessão foi preservada. correlationId={}",
+                    request.getHeader("X-Correlation-Id"), exception);
+        }
         return AuthDtos.UserResponse.from(users.findRequired(principal.id()));
     }
 
@@ -81,6 +96,7 @@ public class AuthenticationService {
         new SecurityContextLogoutHandler().logout(request, response, authentication);
         csrfTokenRepository.saveToken(null, request, response);
         response.addHeader("Set-Cookie", clearSessionCookie());
+        carts.clearVisitorCookie(response);
         SecurityContextHolder.clearContext();
     }
 

@@ -34,6 +34,21 @@ app:
     quote-ttl: 30m
     synthetic: true
     served-ranges: 01000000-09999999
+  cart:
+    visitor-ttl: 30d
+    customer-ttl: 90d
+    cleanup-retention: 7d
+    cleanup-interval: 1h
+    cleanup-batch-size: 100
+    max-items: 50
+    max-quantity-per-item: 20
+    cleanup-enabled: false
+    cookie:
+      name: CART_TOKEN
+      path: /api/v1
+      secure: false
+      same-site: Lax
+      max-age: 30d
   cors:
     allowed-origins: http://allowed.test
     allow-credentials: true

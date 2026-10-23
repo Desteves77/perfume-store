@@ -176,3 +176,12 @@ Endereços pertencem exclusivamente ao cliente autenticado pela sessão. O backe
 A cotação de frete da Fase 6 exige sessão e CSRF, recebe somente o identificador de um endereço próprio e calcula valor e prazo no backend. A política inicial configurável usa faixas de CEP, uma modalidade, valor BRL decimal e prazo estimado em dias úteis. Destino fora das faixas retorna erro estruturado e não gera tarifa substituta. A cotação persistida guarda snapshot mínimo do destino, validade e versão da regra para futura revalidação.
 
 Os valores e faixas locais/teste são sintéticos. A área comercial real, tarifa, modalidade e prazo ainda dependem do proprietário; o perfil de produção permanece sem oferta por padrão e falha de forma segura quando a configuração obrigatória não existe. Não há integração externa de CEP ou transportadora nesta fase.
+
+## Regras adicionadas na Fase 7 - carrinho
+
+- Cada linha de carrinho referencia uma apresentacao, nunca somente o produto. A quantidade e positiva, ha no maximo uma linha por apresentacao e o limite tecnico padrao e 20 unidades por linha e 50 linhas por carrinho.
+- Carrinho visitante usa token opaco aleatorio em `CART_TOKEN`; o banco armazena somente o hash. O token nao vai para URL, logs ou mensagens de erro. Carrinho autenticado usa exclusivamente o usuario da sessao.
+- Adicionar, alterar, consultar ou remover carrinho nao reserva estoque. A disponibilidade e informativa; a reserva e responsabilidade do checkout da Fase 8.
+- O preco vigente e lido do catalogo no servidor. `PRICE_CHANGED`, `OUT_OF_STOCK`, `QUANTITY_EXCEEDS_AVAILABLE` e `PRESENTATION_NOT_ELIGIBLE` aparecem como avisos estruturados. Nao ha reducao silenciosa nem substituicao automatica.
+- O merge no login e atomico e deterministico: linhas iguais somam, linhas distintas permanecem, o token visitante vira `TRANSFERRED` e nao pode ser reutilizado. O carrinho autenticado e preservado no logout.
+- Carrinhos visitantes expiram em 30 dias, autenticados em 90 dias; limpeza marca `EXPIRED` e remove somente registros antigos pela politica configurada. Pedidos e reservas futuras nao dependem da limpeza do carrinho.

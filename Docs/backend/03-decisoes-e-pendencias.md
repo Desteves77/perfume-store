@@ -155,3 +155,19 @@ As referências oficiais usadas para a integração são [Spring Session JDBC](h
 - Definir a área de atendimento real, modalidade, tarifa, unidade do prazo e prazos efetivos. Bloqueia a homologação comercial e a habilitação do perfil de produção, mas não bloqueia a implementação técnica local.
 - Decidir eventual integração de CEP, transportadora e armazenamento de tabela comercial. Fica para a fase de integrações, sem dependência criada agora.
 - Integrar a validação de propriedade, recálculo e snapshot de endereço/frete ao carrinho e checkout das fases 7/8.
+
+## 16. Decisoes tecnicas registradas na Fase 7
+
+- O token de visitante e um segredo opaco de 32 bytes aleatorios. Somente SHA-256 e armazenado; o identificador sequencial do carrinho nunca e credencial.
+- Carrinho anonimo nao e criado por GET vazio. A primeira mutacao cria o registro e emite `CART_TOKEN`; o TTL anonimo e 30 dias e o autenticado e 90 dias.
+- O carrinho autenticado e identificado pela sessao e ha no maximo um carrinho ativo por cliente. O merge do login soma apresentacoes iguais, preserva diferentes e marca o carrinho visitante como `TRANSFERRED`.
+- O carrinho nao reserva estoque. Disponibilidade e lida do estoque existente e apresentada como informacao; reserva, confirmacao e liberacao ficam para checkout/pedido.
+- Preco vigente e sempre lido do catalogo. A referencia persistida serve somente para avisar mudanca de preco. O subtotal nao inclui frete.
+- PostgreSQL fornece locks de linha, unicidade e atualizacao condicional por versao. `Idempotency-Key` evita repeticao de inclusao; conflito da mesma chave com payload diferente retorna `409`.
+- A limpeza agendada e local a instancia, em lotes, e pode ser desligada. Em escala horizontal sera necessario coordenar tarefas ou usar mecanismo compartilhado.
+
+## 17. Pendencias apos a Fase 7
+
+- A Fase 8 deve criar pedido, recalcular todos os itens, validar endereco/frete, reservar estoque atomicamente e guardar snapshots comerciais. O carrinho nao e garantia de compra.
+- A politica comercial de limites de compra, frete no checkout e prazo de reserva ainda depende das decisoes das fases seguintes.
+- Antes de producao, revisar o dominio final do cookie, SameSite, CORS, HTTPS, limpeza coordenada e observabilidade sem tokens.

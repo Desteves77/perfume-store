@@ -60,7 +60,7 @@ class CatalogIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Test
-    void appliesCatalogMigrationAndKeepsCommerceTablesOutOfThisPhase() {
+    void appliesCatalogAndCartMigrationsWithoutOrders() {
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from perfumestore.flyway_schema_history where version = '3' and success = true",
                 Integer.class)).isEqualTo(1);
@@ -68,7 +68,13 @@ class CatalogIntegrationTest {
                 "select count(*) from information_schema.tables where table_schema = 'perfumestore' and table_name in ('categories', 'products', 'product_presentations', 'product_images')",
                 Integer.class)).isEqualTo(4);
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from information_schema.tables where table_schema = 'perfumestore' and table_name in ('stock', 'carts', 'orders')",
+                "select count(*) from perfumestore.flyway_schema_history where version in ('4', '5', '6') and success = true",
+                Integer.class)).isEqualTo(3);
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from information_schema.tables where table_schema = 'perfumestore' and table_name in ('carts', 'cart_items', 'cart_mutation_keys')",
+                Integer.class)).isEqualTo(3);
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from information_schema.tables where table_schema = 'perfumestore' and table_name = 'orders'",
                 Integer.class)).isEqualTo(0);
     }
 

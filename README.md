@@ -330,3 +330,42 @@ Para reproduzir a homologação HTTP isolada da Fase 6, prepare somente valores 
 O ambiente usa PostgreSQL em 127.0.0.1:56200, SMTP em 127.0.0.1:11225, Mailpit em http://127.0.0.1:18225 e a aplicação em 127.0.0.1:18280. Carregue as variáveis no processo Java; o Spring Boot não lê .env automaticamente. O procedimento completo, incluindo smoke, reinicialização e comandos sanitizados, está em Docs/execucoes/FASE_06_*.md. Para preservar o volume, pare somente os serviços com docker compose ... stop; não use down -v.
 
 Os testes da fase podem ser executados com backend\mvnw.cmd --batch-mode -Dtest=AddressShippingIntegrationTest test e a regressão completa com backend\mvnw.cmd --batch-mode clean verify. A Fase 6 não implementa carrinho, checkout, pedidos, pagamento ou integração externa de CEP/transportadora.
+
+### Carrinho persistente - Fase 7
+
+A Fase 7 implementa carrinhos persistentes para visitantes e clientes. O visitante recebe um token opaco `CART_TOKEN` somente na primeira mutacao; o token tem 32 bytes aleatorios, fica em cookie HttpOnly com Path `/api/v1` e somente seu hash SHA-256 e armazenado no banco. Em producao, o cookie deve usar HTTPS/Secure. Uma consulta anonima sem cookie retorna um carrinho virtual vazio e nao cria registro.
+
+Endpoints implementados:
+
+- `GET /api/v1/cart`: consulta o carrinho e recalcula preco, subtotal e disponibilidade.
+- `POST /api/v1/cart/items`: adiciona quantidade a uma apresentacao elegivel; aceita `Idempotency-Key` opcional.
+- `PATCH /api/v1/cart/items/{presentationId}`: define a quantidade absoluta e exige a versao atual do item.
+- `DELETE /api/v1/cart/items/{presentationId}`: remove a linha; repeticao e segura.
+- `POST /api/v1/cart/claim`: associa explicitamente o carrinho visitante a conta autenticada; o login tambem faz essa associacao.
+
+O carrinho nunca reserva estoque. A disponibilidade e apenas informativa e vem do servico de estoque. O preco sempre vem do catalogo no servidor; o campo `priceReference` e somente uma referencia para informar `PRICE_CHANGED`, nunca uma autoridade comercial. O subtotal inclui apenas linhas publicadas e ainda nao inclui frete.
+
+A associacao no login combina linhas iguais por soma, preserva linhas diferentes e e transacional. O token transferido e invalidado e o carrinho da conta permanece apos logout. As operacoes usam bloqueio de linha e unicidade no PostgreSQL para evitar linhas duplicadas e atualizacoes perdidas; conflitos de versao retornam `409`.
+
+Limites tecnicos padrao: 50 linhas, 20 unidades por linha, TTL anonimo de 30 dias, TTL autenticado de 90 dias, retencao de limpeza de 7 dias e processamento de 100 carrinhos por lote. Sao limites de protecao do MVP, nao regras comerciais de quantidade. A limpeza e agendada e pode ser desabilitada por `CART_CLEANUP_ENABLED`; o ambiente local isolado da Fase 7 a deixou desabilitada durante o smoke.
+
+Configuracao local isolada reproduzivel:
+
+```powershell
+Copy-Item phase7-acceptance.env.example .env.phase7-acceptance
+docker compose -p perfumestore-phase7 -f compose.phase7-acceptance.yaml --env-file .env.phase7-acceptance config --quiet
+docker compose -p perfumestore-phase7 -f compose.phase7-acceptance.yaml --env-file .env.phase7-acceptance up -d postgres mailpit
+```
+
+O exemplo usa PostgreSQL em `127.0.0.1:56300`, Mailpit em `127.0.0.1:18325/18326` e aplicacao em `127.0.0.1:18380`, com volume e credenciais sinteticamente exclusivos. O Spring Boot nao carrega `.env` sozinho; carregue as variaveis na sessao do processo Java. Pare somente os servicos deste projeto com `docker compose ... stop` para preservar o volume. Nao use `down -v`.
+
+Para executar a regressao use o JDK 17 documentado:
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Zulu\zulu-17'
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+Set-Location backend
+.\mvnw.cmd --batch-mode clean verify
+```
+
+Os registros completos estao em `Docs/execucoes/FASE_07_RELATORIO.md`, `FASE_07_COMANDOS.md` e `FASE_07_TESTES.md`. A Fase 7 nao implementa pedidos, checkout, frete adicional, pagamento ou reserva de estoque.

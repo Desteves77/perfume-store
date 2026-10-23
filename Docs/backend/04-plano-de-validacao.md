@@ -139,3 +139,19 @@ Os comandos, quantidades e relatórios de teste desta execução estão registra
 | VAL-084 | Persistência e migration | seis endereços ativos e oito cotações permaneceram após reinício; Flyway validou V1–V5 sem reaplicar | Compose/PostgreSQL | 6 |
 
 AddressShippingIntegrationTest executou 8 testes aprovados. A suíte clean verify executou 49 testes aprovados, sem falhas, erros ou ignorados. O smoke HTTP isolado executou 19 cenários aprovados; os detalhes e comandos reais estão em Docs/execucoes/FASE_06_TESTES.md e FASE_06_COMANDOS.md.
+
+## Evidencias executadas na Fase 7
+
+| ID | Regra verificada | Resultado observado | Tipo | Fase |
+|---|---|---|---|---|
+| VAL-085 | Carrinho visitante persistente | GET sem cookie retornou vazio; primeira inclusao emitiu cookie opaco e GET seguinte recuperou a linha | HTTP isolado + PostgreSQL | 7 |
+| VAL-086 | Operacoes do carrinho | inclusao de duas apresentacoes, PATCH absoluto e DELETE retornaram representacao/204 conforme contrato | HTTP isolado | 7 |
+| VAL-087 | Preco e disponibilidade | preco foi alterado no banco e a consulta informou `PRICE_CHANGED`; estoque zerado informou `OUT_OF_STOCK` | HTTP isolado + PostgreSQL | 7 |
+| VAL-088 | Merge e logout | login transferiu carrinho visitante, logout preservou carrinho da conta e novo login o recuperou | HTTP isolado + teste de integracao | 7 |
+| VAL-089 | Isolamento e CSRF | CUSTOMER B recebeu carrinho vazio; teste automatizado cobriu CSRF e isolamento | HTTP isolado + PostgreSQL | 7 |
+| VAL-090 | Concorrencia e idempotencia | inclusoes e claims concorrentes mantiveram uma linha/transferencia; chave repetida nao duplicou; chave com payload diferente conflita | PostgreSQL/Testcontainers | 7 |
+| VAL-091 | Expiracao e limpeza | carrinho expirado foi marcado e removido apos retencao; outros dominios permaneceram | PostgreSQL/Testcontainers | 7 |
+| VAL-092 | Migration e regressao | V6 validou V1-V6 sem reaplicacao; clean verify executou 57 testes sem falhas | Flyway + Maven | 7 |
+| VAL-093 | Persistencia apos restart | aplicacao e PostgreSQL isolados foram reiniciados; login, carrinho, itens e Flyway permaneceram validos | HTTP + Compose/PostgreSQL | 7 |
+
+`CartIntegrationTest` executou 9 testes aprovados, incluindo claim concorrente. A suite completa executou 58 testes aprovados, 0 falhas, 0 erros e 0 ignorados. O smoke HTTP executou 18 cenarios aprovados; a terceira execucao apos correcao do roteiro confirmou o resultado. A validacao do OpenAPI respondeu 200 e publicou os quatro caminhos reais de carrinho.

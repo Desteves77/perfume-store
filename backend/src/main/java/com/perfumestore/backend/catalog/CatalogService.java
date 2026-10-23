@@ -193,6 +193,17 @@ public class CatalogService {
         return product.images();
     }
 
+    @Transactional(readOnly = true)
+    public java.util.Optional<CartPresentation> cartPresentation(UUID presentationId) {
+        return presentations.findById(presentationId).flatMap(presentation -> products.findById(presentation.productId())
+                .map(product -> new CartPresentation(presentation.id(), product.id(), product.name(), product.slug(),
+                        presentation.sku(), presentation.volume(), presentation.unit(), presentation.price(),
+                        presentation.currency(), presentation.active() && products.findPublicBySlug(product.slug()).isPresent())));
+    }
+
+    public record CartPresentation(UUID presentationId, UUID productId, String productName, String productSlug,
+            String sku, BigDecimal volume, String unit, BigDecimal price, String currency, boolean published) { }
+
     @Transactional
     public CatalogDtos.PresentationResponse createPresentation(UUID productId,
             CatalogDtos.PresentationRequest request) {

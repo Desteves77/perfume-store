@@ -178,3 +178,13 @@ O módulo address usa AddressController, AddressService e AddressRepository. add
 O módulo shipping usa ShippingProperties, ShippingService e ShippingQuoteRepository. A regra de atendimento é configuração externa de faixas de CEP, validada contra formatos, inversões e sobreposições. shipping_quotes guarda apenas o snapshot necessário do destino, modalidade, valor numeric(12,2) em BRL, prazo, versão e validade. A persistência não representa pedido nem reserva.
 
 A V5 adiciona as duas tabelas e índices sem alterar V1–V4. A FK de endereços usa ON DELETE RESTRICT; a remoção normal é lógica. Cotações não são expostas no catálogo nem em respostas de outros clientes. O futuro checkout deve revalidar a cotação e criar o snapshot comercial do pedido.
+
+## Fase 7 - modulo cart e V6
+
+O modulo `cart` depende de `auth`, `catalog` e do leitor de disponibilidade de `inventory`. Ele nao cria dependencia de pedido, pagamento ou reserva. `CartService` concentra a identidade visitante/autenticada, merge, calculo de subtotal, validacao de elegibilidade e limpeza; `CartRepository` encapsula JDBC e locks PostgreSQL.
+
+V6 possui `carts` (proprietario por `user_id` ou `visitor_token_hash`), `cart_items` (uma linha por `cart_id` e `presentation_id`) e `cart_mutation_keys` para idempotencia de inclusoes. Chaves estrangeiras preservam apresentacoes e contas; itens dependem do carrinho. Estados `ACTIVE`, `EXPIRED` e `TRANSFERRED` impedem reuso de token transferido.
+
+As operacoes que modificam o mesmo carrinho bloqueiam a linha do carrinho no PostgreSQL. A unicidade do banco impede duas linhas para a mesma apresentacao; `version` e atualizacao condicional impedem sobrescrita silenciosa. O merge ordena os UUIDs dos dois carrinhos antes de obter locks, reduzindo risco de deadlock em logins concorrentes. O scheduler de limpeza usa lotes e TTL configuravel.
+
+A resposta do carrinho e DTO, com item, preco vigente, subtotal, disponibilidade informativa e avisos. Nenhum token, hash, sessao, dado administrativo, saldo fisico ou reservado e exposto.

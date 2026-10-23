@@ -461,3 +461,25 @@ Exemplo de cotação atendida:
     }
 
 O exemplo usa identificador, data, tarifa e prazo ilustrativos. Em cada ambiente, os valores retornados vêm de app.shipping; local/teste podem usar uma regra sintética, enquanto produção permanece sem oferta até receber configuração comercial explícita. Destino fora da área retorna 422 SHIPPING_DESTINATION_UNSERVED; configuração ausente ou inválida retorna 503 SHIPPING_UNCONFIGURED.
+
+## Fase 7 - contratos implementados de carrinho
+
+Os caminhos abaixo estao implementados e foram incluidos no OpenAPI. O acesso e publico por permitir carrinho visitante, mas escritas continuam protegidas por CSRF. Quando ha sessao, o proprietario vem dela; nenhum `customerId` e aceito.
+
+| Metodo e caminho | Acesso | Finalidade | Respostas principais |
+|---|---|---|---|
+| `GET /api/v1/cart` | publico/cliente | consultar carrinho e recalcular preco, subtotal e disponibilidade | `200` |
+| `POST /api/v1/cart/items` | publico/cliente | adicionar quantidade de uma apresentacao publicada; `Idempotency-Key` opcional | `200`, `400`, `409`, `422` |
+| `PATCH /api/v1/cart/items/{presentationId}` | publico/cliente | definir quantidade absoluta com `quantity` e `version` do item | `200`, `404`, `409`, `422` |
+| `DELETE /api/v1/cart/items/{presentationId}` | publico/cliente | remover item; repeticao e segura | `204`, `400` |
+| `POST /api/v1/cart/claim` | cliente | associar explicitamente token visitante ao carrinho da conta | `200`, `401`, `409` |
+
+A resposta contem `items`, `subtotal`, `canCheckout`, `issues`, `expiresAt` e `lastActivityAt`. Cada item contem a apresentacao, quantidade, preco vigente, total da linha, `availability.status`, `availability.availableQuantity` e avisos. O subtotal inclui somente linhas publicadas; nao inclui frete nem confirma disponibilidade para o checkout.
+
+`PRESENTATION_NOT_ELIGIBLE` impede nova inclusao. Itens que se tornam invalidos continuam visiveis com aviso para remocao/ajuste. `PRICE_CHANGED` informa divergencia entre a referencia do carrinho e o preco vigente. Nenhum preco, total ou disponibilidade enviado pelo cliente e aceito.
+
+O cookie `CART_TOKEN` e HttpOnly, tem Path `/api/v1`, SameSite configuravel e Secure no perfil de producao. Somente seu hash e persistido. Sem cookie a consulta retorna carrinho vazio; token invalido/transferido nao revela dados. A associacao no login e idempotente e o logout preserva o carrinho autenticado.
+
+## Fase 7 - estado do contrato
+
+Os endpoints de carrinho acima sao a primeira implementacao executavel. Pedido, checkout, frete no carrinho, reserva de estoque e pagamento continuam planejados para as fases seguintes.
