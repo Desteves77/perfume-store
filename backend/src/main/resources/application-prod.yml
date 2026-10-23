@@ -81,6 +81,14 @@ app:
     mock-checkout-base-url: ${PAYMENT_MOCK_CHECKOUT_BASE_URL:}
     reconciliation-batch-size: ${PAYMENT_RECONCILIATION_BATCH_SIZE:100}
     reconciliation-enabled: ${PAYMENT_RECONCILIATION_ENABLED:false}
+  notification:
+    enabled: ${NOTIFICATION_ENABLED:false}
+    dispatch-enabled: ${NOTIFICATION_DISPATCH_ENABLED:false}
+    batch-size: ${NOTIFICATION_BATCH_SIZE:20}
+    max-attempts: ${NOTIFICATION_MAX_ATTEMPTS:5}
+    initial-backoff: ${NOTIFICATION_INITIAL_BACKOFF:1m}
+    max-backoff: ${NOTIFICATION_MAX_BACKOFF:1h}
+    lease-duration: ${NOTIFICATION_LEASE_DURATION:5m}
   security:
     session-cookie:
       secure: ${SESSION_COOKIE_SECURE:true}

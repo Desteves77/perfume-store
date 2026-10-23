@@ -524,6 +524,12 @@ O corpo contém `eventId`, `eventType`, `providerPaymentId`, `occurredAt`, `amou
 Não há endpoints de simulação no perfil `prod`; a documentação OpenAPI de produção também permanece desabilitada. A integração com webhooks oficiais e seus mecanismos de assinatura depende do provedor real ainda não escolhido.
 ## Fase 10 — contratos administrativos
 
+## Fase 11 — consulta operacional de notificacoes
+
+`GET /api/v1/admin/notifications` exige `ADMIN`, paginacao e ordenacao por whitelist (`createdAt`, `status`, `attempts`). Aceita filtros opcionais `status` e `eventType`. A resposta contem somente metadados operacionais sanitizados: tipo, estado, pedido/cliente, destinatario, tentativas, datas e codigo de erro tecnico. Corpo de mensagem, tokens, segredos SMTP e conteudo sensivel nao sao retornados.
+
+Os eventos comerciais nao possuem endpoint publico de criacao. `ORDER_RECEIVED`, `PAYMENT_APPROVED` e `ORDER_SHIPPED` sao criados pelo backend quando a transicao correspondente e persistida. O SMTP local e externo a API e nao e chamado pelo cliente.
+
 Rotas administrativas protegidas por `ADMIN`:
 
 - `GET /api/v1/admin/orders`

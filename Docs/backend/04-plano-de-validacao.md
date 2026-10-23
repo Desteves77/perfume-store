@@ -183,6 +183,20 @@ Foram adicionados testes de PostgreSQL real para criação com snapshots e reser
 O provedor real, seus webhooks e a homologação financeira permanecem fora da validação desta fase.
 ## Fase 10 — validação executada
 
+## Fase 11 — validacao planejada e executada
+
+| ID | Regra | Verificacao |
+|---|---|---|
+| VAL-104 | Outbox deduplicada | `NotificationIntegrationTest`, PostgreSQL real |
+| VAL-105 | Rollback nao deixa evento | `NotificationIntegrationTest`, `TransactionTemplate` |
+| VAL-106 | Retry e limite de tentativas | `NotificationIntegrationTest`, capturador SMTP |
+| VAL-107 | Dois workers nao duplicam trabalho | `NotificationIntegrationTest`, threads independentes e lease |
+| VAL-108 | Gatilhos reais do pedido/pagamento/envio | regressao de `OrderIntegrationTest` e `PostSaleIntegrationTest` |
+| VAL-109 | Consulta administrativa protegida | `NotificationIntegrationTest`/MockMvc |
+| VAL-110 | Mailpit e persistencia apos restart | smoke HTTP isolado da Fase 11 |
+
+O teste de recuperacao continua usando capturador local sem persistir token em texto aberto. A garantia de entrega exatamente uma vez nao e atribuida ao SMTP convencional; a validacao comprova deduplicacao logica e reprocessamento seguro.
+
 Os testes focados `PostSaleIntegrationTest` executaram 6 cenários com PostgreSQL real: administração e transições logísticas, concorrência/idempotência, cancelamento com liberação, reembolso MOCK sem reposição, devolução com inspeção/reposição e autorização/CSRF. Resultado: 6 testes, 0 falhas, 0 erros, 0 ignorados.
 
 A suíte completa posterior executou 75 testes, com 0 falhas, 0 erros e 0 ignorados. A homologação HTTP isolada, a reinicialização do banco e a verificação do perfil produtivo devem ser registradas após sua execução.

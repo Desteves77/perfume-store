@@ -95,9 +95,11 @@ class OrderIntegrationTest {
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.publicNumber").value(number));
         assertThat(jdbc.queryForObject("select reserved_quantity from perfumestore.inventory_balances where presentation_id = ?", Integer.class, fixture.presentationId)).isEqualTo(2);
         assertThat(jdbc.queryForObject("select count(*) from perfumestore.orders", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from perfumestore.notifications where event_type = 'ORDER_RECEIVED'", Integer.class)).isEqualTo(1);
         mockMvc.perform(post("/api/v1/dev/payment/orders/" + number).with(user(customer)).with(csrf()).contentType("application/json")
                 .content("{\"outcome\":\"APPROVED\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CONFIRMED"));
+        assertThat(jdbc.queryForObject("select count(*) from perfumestore.notifications where event_type = 'PAYMENT_APPROVED'", Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("select physical_quantity from perfumestore.inventory_balances where presentation_id = ?", Integer.class, fixture.presentationId)).isEqualTo(3);
     }
 

@@ -409,6 +409,18 @@ Set-Location backend
 
 Os registros completos da execução estão em `Docs/execucoes/FASE_09_RELATORIO.md`, `FASE_09_COMANDOS.md` e `FASE_09_TESTES.md`. O guia para substituição futura do adaptador está em `Docs/backend/05-integracao-provedor-pagamento.md`.
 ### Fase 10 — operação administrativa e pós-venda MOCK
+
+### Fase 11 - notificacoes transacionais
+
+A aplicacao grava notificacoes de pedido recebido, pagamento aprovado e pedido enviado em uma outbox PostgreSQL (V10). O dispatcher envia depois do commit por SMTP, com `FOR UPDATE SKIP LOCKED`, lease, backoff, limite de tentativas e deduplicacao persistente. A consulta operacional ADMIN esta em `GET /api/v1/admin/notifications`.
+
+No desenvolvimento, use Mailpit: SMTP `localhost:1025` e interface `http://localhost:8025`. Configure `NOTIFICATION_ENABLED=true`, `NOTIFICATION_DISPATCH_ENABLED=true`, `MAIL_HOST` e `MAIL_PORT`. Em `test`, o capturador em memoria e usado e o dispatcher agendado fica desligado. Em `prod`, notificacoes e dispatcher ficam desabilitados por padrao; habilite-os somente com SMTP transacional e variaveis externas configuradas. Mailpit nao e fallback produtivo.
+
+Variaveis principais: `NOTIFICATION_ENABLED`, `NOTIFICATION_DISPATCH_ENABLED`, `NOTIFICATION_BATCH_SIZE`, `NOTIFICATION_MAX_ATTEMPTS`, `NOTIFICATION_INITIAL_BACKOFF`, `NOTIFICATION_MAX_BACKOFF`, `NOTIFICATION_LEASE_DURATION`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` e `MAIL_FROM`. Falhas de SMTP nao desfazem pedidos, pagamentos, reservas ou envios; ficam pendentes ou `FAILED` para diagnostico.
+
+O guia operacional esta em `Docs/backend/06-notificacoes-operacao.md`. A recuperacao de senha mantem seu token apenas como hash e usa transporte especializado; nenhum token aparece na outbox, logs ou respostas.
+
+Fechamento tecnico: a suite final executada teve 81 testes, 0 falhas, 0 erros e 0 ignorados. O smoke isolado contra o JAR final e Mailpit validou os tres eventos, retentativa apos falha SMTP, estados `SENT`, Flyway V10 e persistencia apos reinicializacao. O SMTP real e a operacao comercial de producao permanecem pendentes; a Fase 12 nao foi iniciada.
 A administração de pedidos está disponível somente para `ADMIN` em `/api/v1/admin/orders`: listagem com filtros e ordenação permitida, detalhe, separação, envio, entrega e cancelamento. As transições preservam os estados separados de pedido, pagamento e entrega, exigem CSRF nas mutações e registram ator, motivo e correlação em histórico append-only.
 O pós-venda diferencia cancelamento, reembolso e devolução física. Reembolsos são solicitados em `/api/v1/admin/orders/{publicNumber}/refunds` e somente podem ser confirmados pelo resultado do provedor MOCK em perfis `local`/`test`, por `/api/v1/dev/payment/refunds/{refundId}/simulate` ou reconciliação. O MOCK não existe no perfil `prod`, não há fallback financeiro e reembolso não repõe estoque.
 Devoluções são administradas por `/api/v1/admin/orders/{publicNumber}/returns` e pelas operações `/receive`, `/inspect` e `/restock`. A reposição usa `InventoryService` com movimentação `RESTOCK`, somente após inspeção, com chave idempotente e sem duplicar unidades. A migration V9 cria os registros de logística, auditoria, reembolso e devolução sem alterar V1–V8.

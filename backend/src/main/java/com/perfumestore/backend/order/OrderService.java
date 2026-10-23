@@ -18,6 +18,7 @@ import com.perfumestore.backend.catalog.CatalogService;
 import com.perfumestore.backend.config.OrderProperties;
 import com.perfumestore.backend.inventory.InventoryService;
 import com.perfumestore.backend.inventory.InventoryDtos;
+import com.perfumestore.backend.notification.NotificationService;
 import com.perfumestore.backend.shared.api.ApiRequestException;
 import com.perfumestore.backend.shared.api.MoneyResponse;
 import com.perfumestore.backend.shared.api.PageResponse;
@@ -41,12 +42,14 @@ public class OrderService {
     private final AddressService addresses;
     private final ShippingService shipping;
     private final OrderProperties properties;
+    private final NotificationService notifications;
 
     public OrderService(OrderRepository orders, CartService carts, CatalogService catalog,
             InventoryAvailabilityReader availability, InventoryService inventory, AddressService addresses,
-            ShippingService shipping, OrderProperties properties) {
+            ShippingService shipping, OrderProperties properties, NotificationService notifications) {
         this.orders = orders; this.carts = carts; this.catalog = catalog; this.availability = availability;
         this.inventory = inventory; this.addresses = addresses; this.shipping = shipping; this.properties = properties;
+        this.notifications = notifications;
     }
 
     @Transactional
@@ -109,6 +112,10 @@ public class OrderService {
         }
         orders.insertHistory(UUID.randomUUID(), orderId, null, OrderStatus.PENDING_PAYMENT.name(), "CREATED", userId,
                 correlationId, now);
+        notifications.enqueueOrderReceived(new NotificationService.OrderCreatedData(orderId, userId,
+                order.publicNumber(), now, lines.stream().map(line -> new NotificationService.Item(
+                        line.presentation().productName(), line.quantity(), line.lineTotal())).toList(),
+                subtotal, freight, total, "BRL", PaymentStatus.PENDING));
         carts.clearCustomerCart(userId);
         return response(order);
     }
@@ -164,6 +171,8 @@ public class OrderService {
         orders.updateState(order.id(), OrderStatus.CONFIRMED, PaymentStatus.APPROVED, now);
         orders.insertHistory(UUID.randomUUID(), order.id(), order.status().name(), OrderStatus.CONFIRMED.name(),
                 "PAYMENT_APPROVED", null, correlationId, now);
+        notifications.enqueuePaymentApproved(new NotificationService.PaymentApprovedData(order.id(), order.userId(),
+                order.publicNumber(), now, order.total(), order.currency(), OrderStatus.CONFIRMED, PaymentStatus.APPROVED));
         return response(orderWith(order, OrderStatus.CONFIRMED, PaymentStatus.APPROVED, now));
     }
 

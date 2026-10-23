@@ -309,6 +309,20 @@ A implementação técnica inclui administração de pedidos, separação, envio
 
 ### Atualização final — Fase 10
 
+## Fase 11 - notificacoes transacionais
+
+A Fase 11 adiciona uma outbox persistente em V10 para `ORDER_RECEIVED`, `PAYMENT_APPROVED` e `ORDER_SHIPPED`. Os eventos sao deduplicados por chave logica dentro da transacao comercial; o envio SMTP ocorre depois, por processador com lease PostgreSQL, `SKIP LOCKED`, tentativas limitadas, backoff e estado terminal.
+
+O transporte local usa Mailpit e o perfil `test` usa capturador em memoria. O perfil `prod` mantem notificacoes desabilitadas por padrao e nao usa Mailpit como fallback. Recuperacao de senha continua especializada para manter o token somente como hash; a mensagem foi revisada sem colocar o token recuperavel na outbox.
+
+A implementacao e a validacao da fase estao sendo registradas em `Docs/execucoes/FASE_11_*.md`. A Fase 12 nao foi iniciada.
+
+### Fechamento tecnico da Fase 11
+
+V10 e a outbox transacional foram validadas com 81 testes, 0 falhas, 0 erros e 0 ignorados. O smoke contra o JAR final capturou no Mailpit pedido recebido, pagamento aprovado e pedido enviado; retry, deduplicacao, rollback, claim concorrente e escape HTML foram cobertos. O PostgreSQL isolado foi reiniciado sem perda, Flyway permaneceu na V10 e os containers foram preservados para reproducao.
+
+O SMTP real, a integracao financeira real e a operacao comercial de producao continuam pendentes. A Fase 12 nao foi iniciada.
+
 Smoke HTTP isolado contra o JAR final aprovado no ambiente Compose `perfumestore-phase10-smoke11`: pedido aprovado, separação, envio, entrega, devolução com inspeção/reposição idempotente, reembolso MOCK sem reposição automática, cancelamento com liberação de reserva, autorização ADMIN/CUSTOMER/anônimo e CSRF. A aplicação e o PostgreSQL foram reiniciados sem perda; Flyway validou V1–V9. O perfil `prod` iniciou com pagamentos desabilitados, sem controllers MOCK e sem OpenAPI público.
 
 Resultado: implementação técnica da Fase 10 concluída e validada localmente. Reembolsos financeiros reais, políticas comerciais definitivas e operação de produção permanecem pendentes. A Fase 11 não foi iniciada.

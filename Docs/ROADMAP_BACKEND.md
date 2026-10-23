@@ -513,4 +513,8 @@ O roadmap do frontend será elaborado separadamente, usando os contratos e os ma
 
 ## Estado da Fase 10
 
+## Estado da Fase 11
+
+A Fase 11 foi implementada tecnicamente nesta execucao com outbox persistente V10, notificacoes de pedido recebido, pagamento aprovado e pedido enviado, dispatcher SMTP com lease/retry, deduplicacao e consulta ADMIN. A recuperacao de senha permanece especializada para nao persistir token recuperavel. A validacao final e o commit desta execucao serao registrados nos documentos `Docs/execucoes/FASE_11_*.md`; a Fase 12 nao foi iniciada.
+
 A parte técnica da operação administrativa e pós-venda foi implementada nesta execução: pedidos administrativos, separação, envio, entrega, cancelamento, reembolsos MOCK, devoluções, inspeção e reposição condicionada. A integração financeira real, políticas comerciais definitivas e notificações completas permanecem pendentes. A Fase 11 não foi iniciada.

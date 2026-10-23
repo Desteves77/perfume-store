@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import com.perfumestore.backend.auth.AppUserPrincipal;
 import com.perfumestore.backend.inventory.InventoryService;
+import com.perfumestore.backend.notification.NotificationService;
 import com.perfumestore.backend.payment.RefundDtos;
 import com.perfumestore.backend.payment.RefundService;
 import com.perfumestore.backend.shared.api.ApiRequestException;
@@ -37,11 +38,14 @@ public class AdminOrderService {
     private final InventoryService inventory;
     private final RefundService refunds;
     private final JdbcTemplate jdbc;
+    private final NotificationService notifications;
 
     public AdminOrderService(OrderRepository orders, AdminOrderRepository admin, UserRepository users,
-            OrderService orderService, InventoryService inventory, RefundService refunds, JdbcTemplate jdbc) {
+            OrderService orderService, InventoryService inventory, RefundService refunds, JdbcTemplate jdbc,
+            NotificationService notifications) {
         this.orders = orders; this.admin = admin; this.users = users; this.orderService = orderService;
         this.inventory = inventory; this.refunds = refunds; this.jdbc = jdbc;
+        this.notifications = notifications;
     }
 
     @Transactional(readOnly = true)
@@ -98,6 +102,8 @@ public class AdminOrderService {
         admin.insertHistory(UUID.randomUUID(), order.id(), "SHIP", operationKey, actor, order.status().name(),
                 order.status().name(), order.deliveryStatus().name(), DeliveryStatus.SHIPPED.name(), clean(request.reason()),
                 request.trackingCode(), correlation, now);
+        notifications.enqueueOrderShipped(new NotificationService.OrderShippedData(order.id(), order.userId(),
+                order.publicNumber(), now, cleanRequired(request.carrier()), clean(request.trackingCode())));
         return detail(order.publicNumber());
     }
 

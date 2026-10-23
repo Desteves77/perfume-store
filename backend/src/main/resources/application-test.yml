@@ -66,6 +66,14 @@ app:
     mock-checkout-base-url: mock://checkout
     reconciliation-batch-size: 100
     reconciliation-enabled: false
+  notification:
+    enabled: true
+    dispatch-enabled: false
+    batch-size: 20
+    max-attempts: 3
+    initial-backoff: 1s
+    max-backoff: 5s
+    lease-duration: 1m
   security:
     csrf:
       cookie-secure: false

@@ -207,6 +207,16 @@ Continuam pendentes o provedor de pagamento real, webhooks, reconciliação, ree
 Continuam pendentes a escolha comercial, credenciais de sandbox/produção, contrato de checkout hospedado, autenticação de webhooks, mapeamento final de estados, política de reconciliação com a API oficial, homologação financeira e liberação comercial. Essas pendências não são resolvidas pelos testes do adaptador MOCK.
 ## Fase 10 — decisões técnicas e pendências
 
+## Decisoes da Fase 11
+
+- A outbox transacional e persistida em PostgreSQL e deduplicada por `event_key`; nao foi introduzida fila externa.
+- O dispatcher utiliza lease e `FOR UPDATE SKIP LOCKED`, processa fora da transacao comercial e recupera registros cujo lease expirou.
+- Falhas sao registradas com o codigo sanitizado `EMAIL_DELIVERY_FAILED`; apos o limite configurado, o estado e `FAILED` e o registro permanece para diagnostico.
+- SMTP convencional nao oferece exatamente-uma-entrega universal: se o provedor aceitar a mensagem e a aplicacao cair antes de marcar `SENT`, uma retentativa pode gerar duplicidade fisica. A deduplicacao logica permanece garantida no banco.
+- Recuperacao de senha nao usa a outbox nesta fase para nao persistir o token recuperavel; mantem hash, expiracao, uso unico e resposta anti-enumeracao.
+
+Permanece pendente a configuracao de um servico SMTP transacional real, observabilidade produtiva e politica operacional de reprocessamento em multiplas instancias. Mailpit e somente local/teste.
+
 Foi adotado controle otimista por `version` do pedido, chaves idempotentes persistidas para ações administrativas e locks transacionais nos registros de pedido, reembolso e devolução. A política do MVP exige rastreamento opcional no envio, não repõe estoque por cancelamento ou reembolso e exige inspeção antes de qualquer `RESTOCK`.
 
 O adaptador MOCK continua restrito a `local`/`test`. Confirmação de reembolso depende de resultado persistido do provedor; escolher um estado manual não comprova devolução financeira. Permanecem pendentes a integração financeira real, política comercial definitiva de cancelamento/devolução e operação produtiva com transportadora.

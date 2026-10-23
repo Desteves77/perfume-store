@@ -99,6 +99,7 @@ class PostSaleIntegrationTest {
                 .header("Idempotency-Key", "ship-flow-001").contentType("application/json")
                 .content("{\"carrier\":\"Operacao Local\",\"trackingCode\":\"BR12345\",\"reason\":\"Despachado\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.order.deliveryStatus").value("SHIPPED"));
+        assertThat(jdbc.queryForObject("select count(*) from perfumestore.notifications where event_type = 'ORDER_SHIPPED'", Integer.class)).isEqualTo(1);
         mockMvc.perform(post("/api/v1/admin/orders/" + fixture.publicNumber + "/deliver").with(user(admin)).with(csrf())
                 .header("Idempotency-Key", "deliver-flow-001").contentType("application/json").content("{}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.order.deliveryStatus").value("DELIVERED"));

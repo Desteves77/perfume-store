@@ -210,6 +210,12 @@ Estados de tentativa persistidos: `PENDING`, `APPROVED`, `REJECTED`, `FAILED`, `
 O simulador legado da Fase 8 é apenas uma fachada para esse serviço central. Não existem cobranças reais, dados de cartão ou fallback MOCK em produção.
 ## Fase 10 — operação administrativa e pós-venda
 
+## Fase 11 — notificações transacionais
+
+V10 materializa `notifications` e `notification_attempts`. A notificacao guarda chave de evento, tipo, pedido/cliente relacionados, destinatario, template versionado, texto, estado, contagem de tentativas, proximo retry, lease e erro tecnico sanitizado. `notification_attempts` preserva o resultado de cada tentativa sem armazenar credenciais ou tokens.
+
+`NotificationService` grava eventos dentro das transacoes de pedido criado, aprovacao de pagamento e registro de envio. `NotificationDispatcher` reivindica uma mensagem por vez com `FOR UPDATE SKIP LOCKED`, lease recuperavel e backoff; o SMTP e chamado fora da transacao comercial. Falha SMTP mantem pedido, pagamento, reserva e envio persistidos.
+
 A migration V9 adiciona logística do pedido, auditoria administrativa, reembolsos e devoluções. O pedido mantém estados comerciais, financeiros e logísticos separados. A separação exige pedido confirmado, pagamento aprovado, reservas confirmadas e ausência de revisão; o envio exige separação; a entrega exige envio.
 
 Cancelamento, reembolso e devolução são processos distintos. Cancelamento de pedido não confirma reembolso nem reposição física. Reposição só ocorre após recebimento e inspeção, usa `InventoryService` com movimentação `RESTOCK` e possui chave idempotente. O histórico administrativo é append-only e registra ator, operação, estados, motivo e instante.
