@@ -64,6 +64,15 @@ app:
     expiration-interval: ${ORDER_EXPIRATION_INTERVAL:1m}
     expiration-batch-size: ${ORDER_EXPIRATION_BATCH_SIZE:100}
     expiration-enabled: ${ORDER_EXPIRATION_ENABLED:true}
+  payment:
+    enabled: ${PAYMENT_ENABLED:false}
+    provider: ${PAYMENT_PROVIDER:}
+    checkout-ttl: ${PAYMENT_CHECKOUT_TTL:15m}
+    webhook-tolerance: ${PAYMENT_WEBHOOK_TOLERANCE:5m}
+    mock-webhook-secret: ${PAYMENT_MOCK_WEBHOOK_SECRET:}
+    mock-checkout-base-url: ${PAYMENT_MOCK_CHECKOUT_BASE_URL:mock://checkout}
+    reconciliation-batch-size: ${PAYMENT_RECONCILIATION_BATCH_SIZE:100}
+    reconciliation-enabled: ${PAYMENT_RECONCILIATION_ENABLED:false}
   security:
     session-cookie:
       secure: ${SESSION_COOKIE_SECURE:false}

@@ -59,6 +59,11 @@ class OrderIntegrationTest {
 
     @AfterEach
     void cleanOrderFixtures() {
+        jdbc.update("delete from perfumestore.payment_reconciliations");
+        jdbc.update("delete from perfumestore.mock_payment_states");
+        jdbc.update("delete from perfumestore.payment_attempt_history");
+        jdbc.update("delete from perfumestore.payment_events");
+        jdbc.update("delete from perfumestore.payment_attempts");
         jdbc.update("delete from perfumestore.order_status_history");
         jdbc.update("delete from perfumestore.order_reservations");
         jdbc.update("delete from perfumestore.order_address_snapshots");

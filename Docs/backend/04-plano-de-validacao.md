@@ -165,3 +165,19 @@ AddressShippingIntegrationTest executou 8 testes aprovados. A suíte clean verif
 ## Fase 8 — evidências de validação
 
 Foram adicionados testes de PostgreSQL real para criação com snapshots e reservas, idempotência sequencial e concorrente, rollback de múltiplas reservas, disputa da última unidade, expiração/liberação, aprovação simulada, isolamento HTTP e CSRF. A migration V7 foi aplicada em bancos Testcontainers novos. A contagem final e o smoke da fase são registrados em `Docs/execucoes/FASE_08_TESTES.md` após a execução completa.
+## Evidências planejadas e executadas da Fase 9
+
+| ID | Regra | Verificação |
+|---|---|---|
+| VAL-094 | Tentativa e sessão MOCK persistidas | `PaymentIntegrationTest`, PostgreSQL/Testcontainers |
+| VAL-095 | Assinatura HMAC e corpo adulterado | `PaymentIntegrationTest`, MockMvc sem sessão |
+| VAL-096 | Valor/moeda divergentes não confirmam estoque | `PaymentIntegrationTest`, estado `REVIEW` |
+| VAL-097 | Aprovação válida confirma reserva uma vez | `PaymentIntegrationTest`, histórico e saldo PostgreSQL |
+| VAL-098 | Evento duplicado concorrente | `PaymentIntegrationTest`, duas transações independentes e unicidade V8 |
+| VAL-099 | Aprovação tardia | `PaymentIntegrationTest`, pedido `PAYMENT_REVIEW`, reserva não recriada |
+| VAL-100 | Reconciliação idempotente | `PaymentIntegrationTest`, estado MOCK persistido e reconsulta |
+| VAL-101 | Simulador legado sem fluxo duplicado | `OrderIntegrationTest`, regressão do contrato da Fase 8 |
+| VAL-102 | MOCK ausente em produção | inspeção de profiles e smoke do artefato com `prod` |
+| VAL-103 | Migration V8 incremental | Flyway em PostgreSQL real, banco novo e suíte completa |
+
+O provedor real, seus webhooks e a homologação financeira permanecem fora da validação desta fase.

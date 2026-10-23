@@ -195,3 +195,16 @@ A migration V7 cria `orders`, `order_items`, `order_address_snapshots`, `order_s
 O `OrderService` é a fronteira transacional entre carrinho, catálogo, frete e inventário. A criação usa o carrinho autenticado e limpa seus itens somente após persistir snapshots e reservar todas as apresentações. Falhas fazem rollback do pedido, snapshots, reservas e movimentações. A chave única `(user_id, idempotency_key)` é protegida pelo PostgreSQL; uma linha inicial de pedido funciona como lock transacional para reenvios concorrentes.
 
 Pedidos não pagos vencidos são processados em lotes com `FOR UPDATE SKIP LOCKED`, com reservas liberadas em ordem determinística. A aprovação simulada confirma reservas; aprovação após expiração leva o pedido a `PAYMENT_REVIEW` sem recriar estoque.
+## Fase 9 - infraestrutura de pagamentos MOCK
+
+O domínio `payment` mantém a interação com um provedor atrás de `PaymentProvider`. `MockPaymentProvider` é carregado somente em `local` e `test`; em outros perfis existe apenas um adaptador indisponível e `PAYMENT_ENABLED` permanece falso por padrão.
+
+A migration V8 cria `payment_attempts`, `payment_attempt_history`, `payment_events`, `payment_reconciliations` e `mock_payment_states`. Tentativas guardam o valor e a moeda do pedido, a chave de idempotência, o fingerprint da operação, referências externas e a expiração. Eventos possuem unicidade por provedor e identificador externo, hash do corpo, autenticidade e estado de processamento. O estado MOCK é persistido para permitir reconciliação após perda de notificação e reinicialização.
+
+O recebimento de evento segue: validar HMAC e janela temporal, persistir o evento idempotentemente, bloquear a tentativa, comparar pedido/tentativa/valor/moeda, aplicar a transição de pagamento e delegar os efeitos comerciais ao `OrderService` e ao `InventoryService`. A confirmação de estoque nunca é executada diretamente por controller ou repositório de pagamento.
+
+Eventos concorrentes utilizam unicidade no PostgreSQL e `FOR UPDATE` na tentativa e no pedido. A confirmação de uma reserva é idempotente. Aprovação após a liberação de uma reserva mantém o pagamento aprovado, mas move o pedido para `PAYMENT_REVIEW`; não recria reserva, não baixa estoque e não autoriza entrega.
+
+Estados de tentativa persistidos: `PENDING`, `APPROVED`, `REJECTED`, `FAILED`, `CANCELLED`, `EXPIRED`, `UNKNOWN` e `REVIEW`. Eventos antigos não regridem estados terminais. Reconciliação consulta o adaptador, reutiliza o mesmo processamento idempotente e registra seu resultado.
+
+O simulador legado da Fase 8 é apenas uma fachada para esse serviço central. Não existem cobranças reais, dados de cartão ou fallback MOCK em produção.

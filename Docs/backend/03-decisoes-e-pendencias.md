@@ -191,3 +191,17 @@ Continuam pendentes o provedor de pagamento real, webhooks, reconciliação, ree
 - Snapshots de item, endereço e frete preservam o histórico. O carrinho é limpo somente no sucesso transacional.
 - O simulador `POST /api/v1/dev/payment/orders/{publicNumber}` está disponível apenas nos perfis `local` e `test`; não há fallback financeiro em produção.
 - Prazo de pagamento e expiração são configuráveis. O scheduler usa `ORDER_EXPIRATION_INTERVAL_MS` e a operação comercial real depende de provedor, webhooks, reconciliação e frete real.
+## Decisões da Fase 9
+
+- O pagamento foi isolado no domínio `payment`; pedidos continuam donos do ciclo comercial e estoque continua dono de reservas e movimentações.
+- O provedor desta fase é `MOCK`, restrito a `local` e `test`. Não há seleção, credencial ou chamada financeira externa.
+- Eventos simulados usam HMAC-SHA256 sobre timestamp e corpo bruto, com janela de tolerância configurável. Essa assinatura é somente um mecanismo de teste e será substituída pelo mecanismo do provedor escolhido.
+- A unicidade `(provider, provider_event_id)`, locks persistidos e estados transacionais fornecem idempotência entre instâncias. O serviço não depende de cache ou `synchronized` local.
+- Valor e moeda do evento devem coincidir com a tentativa. Divergência vai para `REVIEW` sem confirmar ou liberar estoque automaticamente.
+- Aprovação após expiração não recria reserva: pagamento fica aprovado, pedido vai para `PAYMENT_REVIEW` e a resolução administrativa futura permanece necessária.
+- A fachada do simulador da Fase 8 utiliza o mesmo núcleo de eventos, evitando duplicação da confirmação de estoque.
+- O perfil `prod` mantém pagamentos desabilitados sem provedor real; não existe fallback para MOCK.
+
+## Pendências para o provedor real
+
+Continuam pendentes a escolha comercial, credenciais de sandbox/produção, contrato de checkout hospedado, autenticação de webhooks, mapeamento final de estados, política de reconciliação com a API oficial, homologação financeira e liberação comercial. Essas pendências não são resolvidas pelos testes do adaptador MOCK.

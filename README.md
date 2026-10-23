@@ -382,3 +382,29 @@ O checkout autenticado está disponível em `POST /api/v1/checkout/orders` e exi
 Consultas usam `GET /api/v1/me/orders` e `GET /api/v1/me/orders/{publicNumber}`. O pagamento simulado existe apenas em `local` e `test`, em `POST /api/v1/dev/payment/orders/{publicNumber}`, com `APPROVED`, `REJECTED` ou `FAILED`; ele não representa cobrança real e não está disponível em produção.
 
 Pedidos não pagos expiram conforme `ORDER_PAYMENT_TTL`/`app.order.payment-ttl`; o scheduler usa `ORDER_EXPIRATION_INTERVAL`/`app.order.expiration-interval`. A operação comercial real permanece bloqueada até provedor, webhooks e regras comerciais de frete serem definidos.
+
+### Infraestrutura de pagamentos simulada - Fase 9
+
+A Fase 9 adiciona uma fronteira interna `PaymentProvider`, persistência de tentativas, sessões de checkout, eventos, histórico e reconciliações. O adaptador `MOCK` está disponível somente nos perfis `local` e `test`; ele não representa uma cobrança real e não é habilitado em produção.
+
+Endpoints implementados nos perfis aplicáveis:
+
+- `POST /api/v1/me/orders/{publicNumber}/payment-sessions`: cria ou recupera uma sessão simulada, exigindo CUSTOMER, CSRF e `Idempotency-Key`.
+- `GET /api/v1/me/orders/{publicNumber}/payment`: consulta a tentativa mais recente do próprio pedido.
+- `POST /api/v1/webhooks/payments/mock`: entrada local/test de evento assinado com `X-Mock-Timestamp` e `X-Mock-Signature`.
+- `POST /api/v1/dev/payment/attempts/{paymentId}/reconcile`: reconciliação local/test restrita a ADMIN.
+- `POST /api/v1/dev/payment/orders/{publicNumber}`: fachada de compatibilidade do simulador da Fase 8, usando o mesmo núcleo de processamento.
+
+O webhook MOCK assina os bytes `timestamp + "." + corpo bruto` com HMAC-SHA256 e segredo fornecido por `PAYMENT_MOCK_WEBHOOK_SECRET`. O evento é validado antes da persistência, identificado por `(provider, provider_event_id)` e processado sob lock persistido. Valor e moeda são comparados com o pedido; divergências entram em `REVIEW` sem confirmar estoque. Aprovação válida confirma as reservas pelo `InventoryService`, sem baixa duplicada. Aprovação após expiração mantém o pagamento aprovado, coloca o pedido em `PAYMENT_REVIEW` e não recria reserva.
+
+Configuração local/teste usa `PAYMENT_ENABLED=true`, `PAYMENT_PROVIDER=MOCK`, TTL de checkout e segredo sintético. O perfil `prod` tem `PAYMENT_ENABLED=false`, não registra controllers MOCK por profile e não possui fallback: sem provedor real configurado, a operação falha de forma controlada e não confirma pedido nem estoque. A integração com provedor oficial, credenciais sandbox, autenticação real de webhooks e homologação financeira permanecem pendentes.
+
+Para verificar a fase com JDK 17:
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Zulu\zulu-17'
+Set-Location backend
+.\mvnw.cmd --batch-mode clean verify
+```
+
+Os registros completos da execução estão em `Docs/execucoes/FASE_09_RELATORIO.md`, `FASE_09_COMANDOS.md` e `FASE_09_TESTES.md`. O guia para substituição futura do adaptador está em `Docs/backend/05-integracao-provedor-pagamento.md`.

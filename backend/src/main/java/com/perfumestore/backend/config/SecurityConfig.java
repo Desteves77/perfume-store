@@ -71,7 +71,8 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
-                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .ignoringRequestMatchers("/api/v1/webhooks/payments/mock"))
                 .securityContext(security -> security.securityContextRepository(securityContextRepository))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .requestCache(requestCache -> requestCache.disable())
@@ -79,6 +80,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/v1/security/csrf").permitAll()
+                        .requestMatchers("/api/v1/webhooks/payments/mock").permitAll()
                         .requestMatchers("/api/v1/catalog/**").permitAll()
                         .requestMatchers("/api/v1/cart/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

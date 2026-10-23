@@ -271,3 +271,35 @@ Fase 7 implementada e validada localmente. A Fase 8 continua responsavel por che
 Implementação técnica em andamento nesta execução: migration V7, pedidos com snapshots, checkout autenticado, reserva atômica de múltiplas apresentações, idempotência em PostgreSQL, consulta de histórico, expiração e simulador restrito a `local`/`test` foram criados. Os testes focados de PostgreSQL real passaram, incluindo concorrência.
 
 A Fase 8 só será marcada como concluída após `clean verify`, smoke HTTP contra o JAR final, validação de persistência/reinicialização, revisão do diff e commit local. A Fase 9 não foi iniciada.
+## Fase 9 - infraestrutura de pagamentos MOCK
+
+Estado: implementação técnica concluída em validação local; integração com provedor real pendente.
+
+Entregas:
+
+- Migration V8 para tentativas, histórico, eventos, reconciliações e estado persistido do MOCK.
+- `PaymentProvider`, `MockPaymentProvider` e adaptador indisponível fora de `local`/`test`.
+- Sessão de checkout, consulta de pagamento, webhook MOCK HMAC, reconciliação e fachada compatível da Fase 8.
+- Idempotência por pedido/chave e por `(provider, provider_event_id)`, locks PostgreSQL e tratamento de eventos fora de ordem.
+- Aprovação válida confirma reservas pelo serviço de pedidos/estoque; aprovação tardia usa `PAYMENT_REVIEW` sem recriar estoque.
+- Documentação de contratos, decisões, validação e substituição futura do provedor.
+
+Evidências já obtidas:
+
+- `PaymentIntegrationTest`: 5 cenários em PostgreSQL real, após correções, sem falhas.
+- `OrderIntegrationTest`: 6 cenários regressivos, sem falhas.
+- V1-V8 aplicadas em bancos Testcontainers; V1-V7 permaneceram inalteradas.
+
+Pendente antes do encerramento formal: executar `clean verify`, smoke HTTP isolado contra o JAR final e validar o perfil `prod` sem controllers/adaptador MOCK. O resultado final e o commit serão registrados nos documentos `Docs/execucoes/FASE_09_*.md`.
+
+Não iniciar a Fase 10 nesta etapa.
+### Atualização final — Fase 9
+
+Estado: infraestrutura MOCK concluída e validada localmente; integração com provedor real pendente.
+
+Evidências finais: `clean verify` após a correção de `application-prod.yml` passou com 69 testes, 0 falhas, 0 erros e 0 ignorados; smoke HTTP isolado confirmou health, checkout MOCK, webhook HMAC, idempotência, pedido confirmado e baixa única; perfil `prod` respondeu health 200, `/v3/api-docs` 404 e rota MOCK 404; V1–V8 foram aplicadas e o volume isolado foi preservado parado.
+
+Foi corrigido um defeito de configuração no perfil `prod`: duas chaves YAML de topo `spring` impediam a inicialização. O bloco `spring.mail` foi incorporado ao bloco existente, sem habilitar pagamento ou MOCK em produção.
+
+O commit local e o estado final serão registrados após a revisão de diff e segredos. A Fase 10 não foi iniciada.
+Commit local da Fase 9 criado com a mensagem `feat: implement mock payment provider infrastructure`; o hash final foi verificado por `git rev-parse HEAD` e é informado no handoff. A árvore ficou limpa após o commit; não houve push, deploy ou início da Fase 10.

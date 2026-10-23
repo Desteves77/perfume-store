@@ -497,3 +497,28 @@ Os contratos abaixo estão implementados; os demais endpoints descritos neste do
 Pedidos iniciam em `PENDING_PAYMENT`, pagamento `PENDING` e entrega `NOT_STARTED`. A criação reserva todas as apresentações em uma única transação, em ordem determinística de UUID. A mesma chave de idempotência retorna o pedido já criado; conteúdo diferente retorna `409`.
 
 Valores retornam `MoneyResponse` em BRL como string decimal. O cliente não envia preço, frete, subtotal ou total como autoridade. Os snapshots de item, endereço e frete não acompanham alterações posteriores do catálogo ou da conta.
+## Fase 9 - contratos de pagamento implementados
+
+Os contratos abaixo são efetivamente publicados apenas nos perfis indicados. Todos usam `application/problem+json` para erros, correlação, datas ISO 8601 UTC e valores BRL no formato monetário já adotado.
+
+### Sessão de checkout
+
+`POST /api/v1/me/orders/{publicNumber}/payment-sessions` exige CUSTOMER autenticado, CSRF e `Idempotency-Key`. O backend obtém o cliente pela sessão, confere o proprietário e usa o total persistido do pedido. Responde `201` na primeira criação e `200` ao repetir a mesma chave com a mesma operação. Uma tentativa pendente/revisão já existente impede nova tentativa concorrente com `409`.
+
+Resposta resumida: `paymentId`, `provider`, `providerPaymentId`, `status`, `amount`, `createdAt`, `updatedAt`, `expiresAt` e `checkoutUrl` somente no ambiente local/teste. Nenhum valor ou moeda é aceito do cliente.
+
+`GET /api/v1/me/orders/{publicNumber}/payment` retorna a tentativa mais recente do próprio cliente. Pedido de outro cliente não é revelado.
+
+### Evento equivalente a webhook MOCK
+
+`POST /api/v1/webhooks/payments/mock` existe somente em `local` e `test`, não usa sessão nem CSRF e exige `X-Mock-Timestamp` e `X-Mock-Signature`. A assinatura HMAC-SHA256 cobre exatamente `timestamp + "." + corpo bruto`; o segredo vem de `PAYMENT_MOCK_WEBHOOK_SECRET`. A janela temporal padrão é configurável por `PAYMENT_WEBHOOK_TOLERANCE`.
+
+O corpo contém `eventId`, `eventType`, `providerPaymentId`, `occurredAt`, `amount` e `currency`. Tipos simulados incluem `PAYMENT_PENDING`, `PAYMENT_APPROVED`, `PAYMENT_REJECTED`, `PAYMENT_FAILED`, `PAYMENT_CANCELLED` e `PAYMENT_EXPIRED`. Duplicidades são respondidas de modo idempotente; valor/moeda divergentes entram em `REVIEW` sem efeito de estoque.
+
+### Reconciliação e compatibilidade
+
+`POST /api/v1/dev/payment/attempts/{paymentId}/reconcile` existe somente em `local` e `test`, exige ADMIN e consulta o estado persistido pelo adaptador MOCK. A repetição reutiliza o mesmo processamento de evento.
+
+`POST /api/v1/dev/payment/orders/{publicNumber}` continua disponível em `local` e `test` para compatibilidade com a Fase 8, mas chama o mesmo `PaymentService` e não possui caminho independente de confirmação.
+
+Não há endpoints de simulação no perfil `prod`; a documentação OpenAPI de produção também permanece desabilitada. A integração com webhooks oficiais e seus mecanismos de assinatura depende do provedor real ainda não escolhido.

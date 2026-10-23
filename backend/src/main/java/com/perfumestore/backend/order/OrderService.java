@@ -132,34 +132,60 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderDtos.OrderResponse simulatePayment(UUID userId, String publicNumber, OrderDtos.SimulatedOutcome outcome,
-            String correlationId) {
-        if (outcome == null) throw new ApiRequestException(422, "PAYMENT_OUTCOME_REQUIRED", "Informe o resultado simulado.");
-        OrderRecord order = orders.findByPublicNumberForUser(publicNumber, userId).flatMap(o -> orders.findByIdForUpdate(o.id()))
+    public PaymentCheckoutOrder requirePaymentOrder(UUID userId, String publicNumber) {
+        OrderRecord order = orders.findByPublicNumberForUser(publicNumber, userId)
+                .flatMap(found -> orders.findByIdForUpdate(found.id()))
                 .orElseThrow(() -> new ApiRequestException(404, "ORDER_NOT_FOUND", "O pedido não foi encontrado."));
-        if (outcome == OrderDtos.SimulatedOutcome.APPROVED) {
-            if (order.status() == OrderStatus.CONFIRMED && order.paymentStatus() == PaymentStatus.APPROVED) return response(order);
-            if (order.status() == OrderStatus.EXPIRED) {
-                Instant now = Instant.now();
-                orders.updateState(order.id(), OrderStatus.PAYMENT_REVIEW, PaymentStatus.APPROVED, now);
-                orders.insertHistory(UUID.randomUUID(), order.id(), order.status().name(), OrderStatus.PAYMENT_REVIEW.name(), "LATE_PAYMENT_APPROVED", userId, correlationId, now);
-                return response(orderWith(order, OrderStatus.PAYMENT_REVIEW, PaymentStatus.APPROVED, now));
-            }
-            if (order.status() != OrderStatus.PENDING_PAYMENT) throw conflict("ORDER_STATE_CONFLICT", "O pedido não pode receber esse evento.");
-            for (OrderReservationRecord reservation : orders.reservations(order.id())) inventory.confirm(reservation.reservationKey(), null, correlationId);
+        return new PaymentCheckoutOrder(order.id(), order.publicNumber(), order.status(), order.paymentStatus(),
+                order.total(), order.currency(), order.paymentExpiresAt());
+    }
+
+    @Transactional
+    public OrderDtos.OrderResponse applyPaymentApproved(UUID orderId, String correlationId) {
+        OrderRecord order = lockOrder(orderId);
+        if (order.status() == OrderStatus.CONFIRMED && order.paymentStatus() == PaymentStatus.APPROVED) return response(order);
+        if (order.status() == OrderStatus.EXPIRED) {
             Instant now = Instant.now();
-            orders.updateState(order.id(), OrderStatus.CONFIRMED, PaymentStatus.APPROVED, now);
-            orders.insertHistory(UUID.randomUUID(), order.id(), order.status().name(), OrderStatus.CONFIRMED.name(), "PAYMENT_APPROVED", userId, correlationId, now);
-            return response(orderWith(order, OrderStatus.CONFIRMED, PaymentStatus.APPROVED, now));
+            orders.updateState(order.id(), OrderStatus.PAYMENT_REVIEW, PaymentStatus.APPROVED, now);
+            orders.insertHistory(UUID.randomUUID(), order.id(), order.status().name(), OrderStatus.PAYMENT_REVIEW.name(),
+                    "LATE_PAYMENT_APPROVED", null, correlationId, now);
+            return response(orderWith(order, OrderStatus.PAYMENT_REVIEW, PaymentStatus.APPROVED, now));
         }
-        if (order.status() == OrderStatus.CANCELLED && order.paymentStatus() == (outcome == OrderDtos.SimulatedOutcome.REJECTED ? PaymentStatus.REJECTED : PaymentStatus.FAILED)) return response(order);
+        if (order.status() == OrderStatus.PAYMENT_REVIEW) return response(order);
+        if (order.status() != OrderStatus.PENDING_PAYMENT) throw conflict("ORDER_STATE_CONFLICT", "O pedido não pode receber esse evento.");
+        for (OrderReservationRecord reservation : orders.reservations(order.id())) inventory.confirm(reservation.reservationKey(), null, correlationId);
+        Instant now = Instant.now();
+        orders.updateState(order.id(), OrderStatus.CONFIRMED, PaymentStatus.APPROVED, now);
+        orders.insertHistory(UUID.randomUUID(), order.id(), order.status().name(), OrderStatus.CONFIRMED.name(),
+                "PAYMENT_APPROVED", null, correlationId, now);
+        return response(orderWith(order, OrderStatus.CONFIRMED, PaymentStatus.APPROVED, now));
+    }
+
+    @Transactional
+    public OrderDtos.OrderResponse applyPaymentRejected(UUID orderId, PaymentStatus payment, String event,
+            String correlationId) {
+        OrderRecord order = lockOrder(orderId);
+        if (order.status() == OrderStatus.CANCELLED && order.paymentStatus() == payment) return response(order);
+        if (order.status() == OrderStatus.EXPIRED || order.status() == OrderStatus.PAYMENT_REVIEW) return response(order);
         if (order.status() != OrderStatus.PENDING_PAYMENT) throw conflict("ORDER_STATE_CONFLICT", "O pedido não pode receber esse evento.");
         for (OrderReservationRecord reservation : orders.reservations(order.id())) inventory.release(reservation.reservationKey(), null, correlationId);
-        PaymentStatus payment = outcome == OrderDtos.SimulatedOutcome.REJECTED ? PaymentStatus.REJECTED : PaymentStatus.FAILED;
         Instant now = Instant.now();
         orders.updateState(order.id(), OrderStatus.CANCELLED, payment, now);
-        orders.insertHistory(UUID.randomUUID(), order.id(), order.status().name(), OrderStatus.CANCELLED.name(), "PAYMENT_" + outcome.name(), userId, correlationId, now);
+        orders.insertHistory(UUID.randomUUID(), order.id(), order.status().name(), OrderStatus.CANCELLED.name(), event,
+                null, correlationId, now);
         return response(orderWith(order, OrderStatus.CANCELLED, payment, now));
+    }
+
+    @Transactional
+    public OrderDtos.OrderResponse expireFromPayment(UUID orderId, String correlationId) {
+        OrderRecord order = lockOrder(orderId);
+        if (order.status() != OrderStatus.PENDING_PAYMENT) return response(order);
+        for (OrderReservationRecord reservation : orders.reservations(order.id())) inventory.release(reservation.reservationKey(), null, correlationId);
+        Instant now = Instant.now();
+        orders.updateState(order.id(), OrderStatus.EXPIRED, PaymentStatus.EXPIRED, now);
+        orders.insertHistory(UUID.randomUUID(), order.id(), order.status().name(), OrderStatus.EXPIRED.name(),
+                "PAYMENT_DEADLINE_EXPIRED", null, correlationId, now);
+        return response(orderWith(order, OrderStatus.EXPIRED, PaymentStatus.EXPIRED, now));
     }
 
     @Transactional
@@ -188,6 +214,10 @@ public class OrderService {
         List<OrderDtos.HistoryResponse> history = orders.history(order.id()).stream().map(h -> new OrderDtos.HistoryResponse(h.fromStatus(), h.toStatus(), h.event(), h.createdAt())).toList();
         return new OrderDtos.OrderResponse(order.publicNumber(), order.createdAt(), order.updatedAt(), order.status(), order.paymentStatus(), order.deliveryStatus(), money(order.subtotal()), money(order.shippingAmount()), money(order.total()), order.paymentExpiresAt(), items, new OrderDtos.AddressSnapshot(a.recipientName(), a.label(), a.postalCode(), a.street(), a.number(), a.complement(), a.neighborhood(), a.city(), a.state(), a.reference()), new OrderDtos.ShippingSnapshot(s.quoteId(), s.method(), money(s.amount()), s.minDays(), s.maxDays(), s.dayType(), s.ruleVersion()), history);
     }
+    private OrderRecord lockOrder(UUID orderId) {
+        return orders.findByIdForUpdate(orderId).orElseThrow(() ->
+                new ApiRequestException(404, "ORDER_NOT_FOUND", "O pedido não foi encontrado."));
+    }
     private OrderRecord orderWith(OrderRecord o, OrderStatus status, PaymentStatus payment, Instant now) { return new OrderRecord(o.id(), o.publicNumber(), o.userId(), o.cartId(), o.idempotencyKey(), o.requestFingerprint(), status, payment, o.deliveryStatus(), o.subtotal(), o.shippingAmount(), o.total(), o.currency(), o.createdAt(), now, o.paymentExpiresAt()); }
     private MoneyResponse money(BigDecimal value) { return new MoneyResponse(value.setScale(2), "BRL"); }
     private String publicNumber() { return "PS-" + UUID.randomUUID().toString().replace("-", "").toUpperCase(); }
@@ -196,4 +226,6 @@ public class OrderService {
     private void validateKey(String key) { if (key == null || !key.matches("[A-Za-z0-9._:-]{8,100}")) throw new ApiRequestException(422, "IDEMPOTENCY_KEY_INVALID", "Informe uma chave de idempotência válida."); }
     private ApiRequestException conflict(String code, String message) { return new ApiRequestException(409, code, message); }
     private record CartLine(UUID presentationId, int quantity, CatalogService.CartPresentation presentation, BigDecimal lineTotal) { }
+    public record PaymentCheckoutOrder(UUID id, String publicNumber, OrderStatus status, PaymentStatus paymentStatus,
+            BigDecimal total, String currency, Instant paymentExpiresAt) { }
 }
