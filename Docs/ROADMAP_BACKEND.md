@@ -511,3 +511,6 @@ Iniciar pela Fase 0, registrando as regras de negócio e as decisões que orient
 
 O roadmap do frontend será elaborado separadamente, usando os contratos e os marcos deste backend como referência.
 
+## Estado da Fase 10
+
+A parte técnica da operação administrativa e pós-venda foi implementada nesta execução: pedidos administrativos, separação, envio, entrega, cancelamento, reembolsos MOCK, devoluções, inspeção e reposição condicionada. A integração financeira real, políticas comerciais definitivas e notificações completas permanecem pendentes. A Fase 11 não foi iniciada.

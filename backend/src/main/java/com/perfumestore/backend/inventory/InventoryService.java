@@ -41,11 +41,12 @@ public class InventoryService implements InventoryAvailabilityReader {
             String reason, String operationKey, UUID actorUserId, String correlationId) {
         requirePresentation(presentationId);
         validateOperationKey(operationKey);
-        if (type != InventoryMovementType.ENTRY && type != InventoryMovementType.ADJUSTMENT) {
+        if (type != InventoryMovementType.ENTRY && type != InventoryMovementType.ADJUSTMENT
+                && type != InventoryMovementType.RESTOCK) {
             throw conflict("INVENTORY_MOVEMENT_TYPE_INVALID", "O tipo não representa uma entrada ou ajuste administrativo.");
         }
-        if (quantity == 0 || (type == InventoryMovementType.ENTRY && quantity < 0)) {
-            throw conflict("INVENTORY_QUANTITY_INVALID", type == InventoryMovementType.ENTRY
+        if (quantity == 0 || ((type == InventoryMovementType.ENTRY || type == InventoryMovementType.RESTOCK) && quantity < 0)) {
+            throw conflict("INVENTORY_QUANTITY_INVALID", (type == InventoryMovementType.ENTRY || type == InventoryMovementType.RESTOCK)
                     ? "A quantidade da entrada deve ser positiva."
                     : "O ajuste não pode ter quantidade zero.");
         }

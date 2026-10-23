@@ -131,6 +131,12 @@ public class OrderService {
                 new ApiRequestException(404, "ORDER_NOT_FOUND", "O pedido não foi encontrado.")));
     }
 
+    @Transactional(readOnly = true)
+    public OrderDtos.OrderResponse adminResponse(UUID orderId) {
+        return response(orders.findById(orderId).orElseThrow(() ->
+                new ApiRequestException(404, "ORDER_NOT_FOUND", "O pedido nÃ£o foi encontrado.")));
+    }
+
     @Transactional
     public PaymentCheckoutOrder requirePaymentOrder(UUID userId, String publicNumber) {
         OrderRecord order = orders.findByPublicNumberForUser(publicNumber, userId)

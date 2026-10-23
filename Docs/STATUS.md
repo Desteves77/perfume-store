@@ -303,3 +303,12 @@ Foi corrigido um defeito de configuração no perfil `prod`: duas chaves YAML de
 
 O commit local e o estado final serão registrados após a revisão de diff e segredos. A Fase 10 não foi iniciada.
 Commit local da Fase 9 criado com a mensagem `feat: implement mock payment provider infrastructure`; o hash final foi verificado por `git rev-parse HEAD` e é informado no handoff. A árvore ficou limpa após o commit; não houve push, deploy ou início da Fase 10.
+## Fase 10 — operação administrativa e pós-venda MOCK
+
+A implementação técnica inclui administração de pedidos, separação, envio, entrega, cancelamento, reembolsos e devoluções com inspeção e reposição condicionada. A migration V9 foi criada sem alterar V1–V8. Os testes focados da fase passaram (6/6) e a suíte completa passou (75/75); a homologação HTTP isolada e a revisão final serão registradas neste documento antes do commit.
+
+### Atualização final — Fase 10
+
+Smoke HTTP isolado contra o JAR final aprovado no ambiente Compose `perfumestore-phase10-smoke11`: pedido aprovado, separação, envio, entrega, devolução com inspeção/reposição idempotente, reembolso MOCK sem reposição automática, cancelamento com liberação de reserva, autorização ADMIN/CUSTOMER/anônimo e CSRF. A aplicação e o PostgreSQL foram reiniciados sem perda; Flyway validou V1–V9. O perfil `prod` iniciou com pagamentos desabilitados, sem controllers MOCK e sem OpenAPI público.
+
+Resultado: implementação técnica da Fase 10 concluída e validada localmente. Reembolsos financeiros reais, políticas comerciais definitivas e operação de produção permanecem pendentes. A Fase 11 não foi iniciada.

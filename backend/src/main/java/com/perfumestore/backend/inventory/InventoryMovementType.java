@@ -5,5 +5,6 @@ public enum InventoryMovementType {
     ADJUSTMENT,
     RESERVATION,
     CONFIRMATION,
-    RELEASE
+    RELEASE,
+    RESTOCK
 }

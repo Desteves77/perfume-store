@@ -522,3 +522,23 @@ O corpo contém `eventId`, `eventType`, `providerPaymentId`, `occurredAt`, `amou
 `POST /api/v1/dev/payment/orders/{publicNumber}` continua disponível em `local` e `test` para compatibilidade com a Fase 8, mas chama o mesmo `PaymentService` e não possui caminho independente de confirmação.
 
 Não há endpoints de simulação no perfil `prod`; a documentação OpenAPI de produção também permanece desabilitada. A integração com webhooks oficiais e seus mecanismos de assinatura depende do provedor real ainda não escolhido.
+## Fase 10 — contratos administrativos
+
+Rotas administrativas protegidas por `ADMIN`:
+
+- `GET /api/v1/admin/orders`
+- `GET /api/v1/admin/orders/{publicNumber}`
+- `POST /api/v1/admin/orders/{publicNumber}/prepare`
+- `POST /api/v1/admin/orders/{publicNumber}/ship`
+- `POST /api/v1/admin/orders/{publicNumber}/deliver`
+- `POST /api/v1/admin/orders/{publicNumber}/cancel`
+- `POST /api/v1/admin/orders/{publicNumber}/refunds`
+- `GET /api/v1/admin/refunds`
+- `GET /api/v1/admin/refunds/{refundId}`
+- `POST /api/v1/admin/orders/{publicNumber}/returns`
+- `GET /api/v1/admin/returns/{returnId}`
+- `POST /api/v1/admin/returns/{returnId}/receive`
+- `POST /api/v1/admin/returns/{returnId}/inspect`
+- `POST /api/v1/admin/returns/{returnId}/restock`
+
+As mutações exigem sessão e CSRF. Reembolsos simulados e seus eventos só existem em perfis `local`/`test`; o perfil `prod` não registra os controllers MOCK.

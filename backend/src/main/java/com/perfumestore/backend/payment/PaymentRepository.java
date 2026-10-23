@@ -32,6 +32,34 @@ public class PaymentRepository {
         return query("select * from perfumestore.payment_attempts where provider = ? and provider_payment_id = ? for update", provider, providerPaymentId).stream().findFirst();
     }
 
+    public Optional<PaymentAttemptRecord> findApprovedForOrderForUpdate(UUID orderId) {
+        return query("select * from perfumestore.payment_attempts where order_id = ? and status = 'APPROVED' order by completed_at desc nulls last, id desc limit 1 for update", orderId).stream().findFirst();
+    }
+
+    public void ensureMockRefundState(String providerRef, UUID refundId, PaymentAttemptStatus status,
+            BigDecimal amount, String currency, Instant now) {
+        jdbc.update("""
+                insert into perfumestore.mock_refund_states
+                    (provider_ref, refund_id, status, amount, currency, occurred_at, updated_at)
+                values (?, ?, ?, ?, ?, ?, ?)
+                on conflict (provider_ref) do nothing
+                """, providerRef, refundId, status.name(), amount, currency, Timestamp.from(now), Timestamp.from(now));
+    }
+
+    public void updateMockRefundState(String providerRef, PaymentAttemptStatus status, BigDecimal amount,
+            String currency, Instant now) {
+        jdbc.update("update perfumestore.mock_refund_states set status = ?, amount = ?, currency = ?, occurred_at = ?, updated_at = ? where provider_ref = ?",
+                status.name(), amount, currency, Timestamp.from(now), Timestamp.from(now), providerRef);
+    }
+
+    public Optional<MockRefundStateRecord> findMockRefundState(String providerRef) {
+        return jdbc.query("select * from perfumestore.mock_refund_states where provider_ref = ?", (rs, row) ->
+                new MockRefundStateRecord(rs.getString("provider_ref"), rs.getObject("refund_id", UUID.class),
+                        PaymentAttemptStatus.valueOf(rs.getString("status")), rs.getBigDecimal("amount"),
+                        rs.getString("currency"), rs.getTimestamp("occurred_at").toInstant(),
+                        rs.getTimestamp("updated_at").toInstant()), providerRef).stream().findFirst();
+    }
+
     public boolean insertAttempt(PaymentAttemptRecord attempt) {
         return jdbc.update("""
                 insert into perfumestore.payment_attempts

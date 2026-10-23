@@ -408,3 +408,13 @@ Set-Location backend
 ```
 
 Os registros completos da execução estão em `Docs/execucoes/FASE_09_RELATORIO.md`, `FASE_09_COMANDOS.md` e `FASE_09_TESTES.md`. O guia para substituição futura do adaptador está em `Docs/backend/05-integracao-provedor-pagamento.md`.
+### Fase 10 — operação administrativa e pós-venda MOCK
+A administração de pedidos está disponível somente para `ADMIN` em `/api/v1/admin/orders`: listagem com filtros e ordenação permitida, detalhe, separação, envio, entrega e cancelamento. As transições preservam os estados separados de pedido, pagamento e entrega, exigem CSRF nas mutações e registram ator, motivo e correlação em histórico append-only.
+O pós-venda diferencia cancelamento, reembolso e devolução física. Reembolsos são solicitados em `/api/v1/admin/orders/{publicNumber}/refunds` e somente podem ser confirmados pelo resultado do provedor MOCK em perfis `local`/`test`, por `/api/v1/dev/payment/refunds/{refundId}/simulate` ou reconciliação. O MOCK não existe no perfil `prod`, não há fallback financeiro e reembolso não repõe estoque.
+Devoluções são administradas por `/api/v1/admin/orders/{publicNumber}/returns` e pelas operações `/receive`, `/inspect` e `/restock`. A reposição usa `InventoryService` com movimentação `RESTOCK`, somente após inspeção, com chave idempotente e sem duplicar unidades. A migration V9 cria os registros de logística, auditoria, reembolso e devolução sem alterar V1–V8.
+Para homologação isolada, valide o Compose antes de iniciar e preserve o volume próprio:
+```powershell
+docker compose -p perfumestore-phase10-acceptance -f compose.phase10-acceptance.yaml --env-file phase10-acceptance.env.example config --quiet
+docker compose -p perfumestore-phase10-acceptance -f compose.phase10-acceptance.yaml --env-file phase10-acceptance.env.example up -d postgres
+```
+O ambiente usa PostgreSQL em `127.0.0.1:56400` e o volume `perfumestore-phase10-post-sale-postgres-data`. Para parar sem remover dados, use `docker compose ... stop`; não use `down -v`. O procedimento e as evidências da execução estão em `Docs/execucoes/FASE_10_*.md`. A operação comercial real e os reembolsos financeiros reais continuam bloqueados.

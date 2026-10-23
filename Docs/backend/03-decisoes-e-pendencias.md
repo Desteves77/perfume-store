@@ -205,3 +205,8 @@ Continuam pendentes o provedor de pagamento real, webhooks, reconciliação, ree
 ## Pendências para o provedor real
 
 Continuam pendentes a escolha comercial, credenciais de sandbox/produção, contrato de checkout hospedado, autenticação de webhooks, mapeamento final de estados, política de reconciliação com a API oficial, homologação financeira e liberação comercial. Essas pendências não são resolvidas pelos testes do adaptador MOCK.
+## Fase 10 — decisões técnicas e pendências
+
+Foi adotado controle otimista por `version` do pedido, chaves idempotentes persistidas para ações administrativas e locks transacionais nos registros de pedido, reembolso e devolução. A política do MVP exige rastreamento opcional no envio, não repõe estoque por cancelamento ou reembolso e exige inspeção antes de qualquer `RESTOCK`.
+
+O adaptador MOCK continua restrito a `local`/`test`. Confirmação de reembolso depende de resultado persistido do provedor; escolher um estado manual não comprova devolução financeira. Permanecem pendentes a integração financeira real, política comercial definitiva de cancelamento/devolução e operação produtiva com transportadora.

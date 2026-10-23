@@ -208,3 +208,8 @@ Eventos concorrentes utilizam unicidade no PostgreSQL e `FOR UPDATE` na tentativ
 Estados de tentativa persistidos: `PENDING`, `APPROVED`, `REJECTED`, `FAILED`, `CANCELLED`, `EXPIRED`, `UNKNOWN` e `REVIEW`. Eventos antigos não regridem estados terminais. Reconciliação consulta o adaptador, reutiliza o mesmo processamento idempotente e registra seu resultado.
 
 O simulador legado da Fase 8 é apenas uma fachada para esse serviço central. Não existem cobranças reais, dados de cartão ou fallback MOCK em produção.
+## Fase 10 — operação administrativa e pós-venda
+
+A migration V9 adiciona logística do pedido, auditoria administrativa, reembolsos e devoluções. O pedido mantém estados comerciais, financeiros e logísticos separados. A separação exige pedido confirmado, pagamento aprovado, reservas confirmadas e ausência de revisão; o envio exige separação; a entrega exige envio.
+
+Cancelamento, reembolso e devolução são processos distintos. Cancelamento de pedido não confirma reembolso nem reposição física. Reposição só ocorre após recebimento e inspeção, usa `InventoryService` com movimentação `RESTOCK` e possui chave idempotente. O histórico administrativo é append-only e registra ator, operação, estados, motivo e instante.

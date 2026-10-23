@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.ArrayList;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -23,8 +24,16 @@ public class OrderRepository {
         return query("select * from perfumestore.orders where public_number = ? and user_id = ?", number, userId)
                 .stream().findFirst();
     }
+
+    public Optional<OrderRecord> findByPublicNumber(String number) {
+        return query("select * from perfumestore.orders where public_number = ?", number).stream().findFirst();
+    }
     public Optional<OrderRecord> findByIdForUpdate(UUID id) {
         return query("select * from perfumestore.orders where id = ? for update", id).stream().findFirst();
+    }
+
+    public Optional<OrderRecord> findById(UUID id) {
+        return query("select * from perfumestore.orders where id = ?", id).stream().findFirst();
     }
     public List<OrderRecord> findDueForUpdate(Instant now, int limit) {
         return query("select * from perfumestore.orders where order_status = 'PENDING_PAYMENT' and payment_expires_at <= ? order by id for update skip locked limit " + Math.max(1, Math.min(limit, 1000)), Timestamp.from(now));
@@ -35,6 +44,37 @@ public class OrderRepository {
     }
     public long count(UUID userId) {
         Long value = jdbc.queryForObject("select count(*) from perfumestore.orders where user_id = ?", Long.class, userId);
+        return value == null ? 0 : value;
+    }
+
+    public List<OrderRecord> findAdminPage(int page, int size, String column, String direction,
+            String search, OrderStatus status, PaymentStatus paymentStatus, DeliveryStatus deliveryStatus,
+            Instant from, Instant to) {
+        int offset = Math.multiplyExact(page, size);
+        StringBuilder sql = new StringBuilder("select * from perfumestore.orders where 1=1");
+        List<Object> args = new ArrayList<>();
+        if (search != null) { sql.append(" and public_number ilike ?"); args.add("%" + search + "%"); }
+        if (status != null) { sql.append(" and order_status = ?"); args.add(status.name()); }
+        if (paymentStatus != null) { sql.append(" and payment_status = ?"); args.add(paymentStatus.name()); }
+        if (deliveryStatus != null) { sql.append(" and delivery_status = ?"); args.add(deliveryStatus.name()); }
+        if (from != null) { sql.append(" and created_at >= ?"); args.add(Timestamp.from(from)); }
+        if (to != null) { sql.append(" and created_at < ?"); args.add(Timestamp.from(to)); }
+        sql.append(" order by ").append(column).append(" ").append(direction).append(", id desc limit ? offset ?");
+        args.add(size); args.add(offset);
+        return query(sql.toString(), args.toArray());
+    }
+
+    public long countAdmin(String search, OrderStatus status, PaymentStatus paymentStatus,
+            DeliveryStatus deliveryStatus, Instant from, Instant to) {
+        StringBuilder sql = new StringBuilder("select count(*) from perfumestore.orders where 1=1");
+        List<Object> args = new ArrayList<>();
+        if (search != null) { sql.append(" and public_number ilike ?"); args.add("%" + search + "%"); }
+        if (status != null) { sql.append(" and order_status = ?"); args.add(status.name()); }
+        if (paymentStatus != null) { sql.append(" and payment_status = ?"); args.add(paymentStatus.name()); }
+        if (deliveryStatus != null) { sql.append(" and delivery_status = ?"); args.add(deliveryStatus.name()); }
+        if (from != null) { sql.append(" and created_at >= ?"); args.add(Timestamp.from(from)); }
+        if (to != null) { sql.append(" and created_at < ?"); args.add(Timestamp.from(to)); }
+        Long value = jdbc.queryForObject(sql.toString(), Long.class, args.toArray());
         return value == null ? 0 : value;
     }
     public boolean insertIfAbsent(OrderRecord o) {
@@ -80,6 +120,16 @@ public class OrderRepository {
     }
     public int updateState(UUID id, OrderStatus status, PaymentStatus payment, Instant now) {
         return jdbc.update("update perfumestore.orders set order_status = ?, payment_status = ?, updated_at = ? where id = ?", status.name(), payment.name(), Timestamp.from(now), id);
+    }
+
+    public int updateDeliveryState(UUID id, DeliveryStatus deliveryStatus, Instant now) {
+        return jdbc.update("update perfumestore.orders set delivery_status = ?, updated_at = ? where id = ?",
+                deliveryStatus.name(), Timestamp.from(now), id);
+    }
+
+    public int updatePaymentStatus(UUID id, PaymentStatus paymentStatus, Instant now) {
+        return jdbc.update("update perfumestore.orders set payment_status = ?, updated_at = ? where id = ?",
+                paymentStatus.name(), Timestamp.from(now), id);
     }
     public List<OrderItemRecord> items(UUID orderId) {
         return jdbc.query("select id, product_id, presentation_id, sku, product_name, volume, unit, quantity, unit_price, line_total, currency from perfumestore.order_items where order_id = ? order by id", (rs, row) -> new OrderItemRecord(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class), rs.getString(4), rs.getString(5), rs.getBigDecimal(6), rs.getString(7), rs.getInt(8), rs.getBigDecimal(9), rs.getBigDecimal(10), rs.getString(11)), orderId);

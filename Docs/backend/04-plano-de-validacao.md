@@ -181,3 +181,12 @@ Foram adicionados testes de PostgreSQL real para criação com snapshots e reser
 | VAL-103 | Migration V8 incremental | Flyway em PostgreSQL real, banco novo e suíte completa |
 
 O provedor real, seus webhooks e a homologação financeira permanecem fora da validação desta fase.
+## Fase 10 — validação executada
+
+Os testes focados `PostSaleIntegrationTest` executaram 6 cenários com PostgreSQL real: administração e transições logísticas, concorrência/idempotência, cancelamento com liberação, reembolso MOCK sem reposição, devolução com inspeção/reposição e autorização/CSRF. Resultado: 6 testes, 0 falhas, 0 erros, 0 ignorados.
+
+A suíte completa posterior executou 75 testes, com 0 falhas, 0 erros e 0 ignorados. A homologação HTTP isolada, a reinicialização do banco e a verificação do perfil produtivo devem ser registradas após sua execução.
+
+### Atualização final da Fase 10
+
+`PostSaleIntegrationTest` executou 6 testes aprovados. `clean verify` executou 75 testes aprovados. A homologação HTTP final retornou `SMOKE_RESULT=PASS`, com anônimo 401, CUSTOMER 403, mutação ADMIN sem CSRF 403 e operações administrativas válidas entre 200 e 201. O PostgreSQL isolado preservou 2 pedidos, 4 eventos administrativos, 1 reembolso e 1 devolução após reinício. V1–V9 foram listadas pelo Flyway sem reaplicação. Reembolsos reais e operação comercial de produção continuam fora do escopo validado.

@@ -45,4 +45,31 @@ public class MockPaymentProvider implements PaymentProvider {
                 .orElse(new ProviderPaymentSnapshot(providerPaymentId, PaymentAttemptStatus.UNKNOWN, null, null,
                         Instant.now(), null));
     }
+
+    @Override
+    public ProviderRefundResult createRefund(UUID refundId, String providerPaymentId, BigDecimal amount,
+            String currency, Instant expiresAt) {
+        String providerRef = "mock-refund-" + refundId.toString().replace("-", "");
+        payments.ensureMockRefundState(providerRef, refundId, PaymentAttemptStatus.PENDING, amount, currency, Instant.now());
+        return new ProviderRefundResult(providerRef, PaymentAttemptStatus.PENDING, expiresAt);
+    }
+
+    @Override
+    public ProviderRefundSnapshot getRefundStatus(String providerRefundId) {
+        return payments.findMockRefundState(providerRefundId)
+                .map(state -> new ProviderRefundSnapshot(state.providerRef(), state.status(), state.amount(),
+                        state.currency(), state.occurredAt()))
+                .orElse(new ProviderRefundSnapshot(providerRefundId, PaymentAttemptStatus.UNKNOWN, null, null, Instant.now()));
+    }
+
+    @Override
+    public void simulateRefund(String providerRefundId, PaymentAttemptStatus status, BigDecimal amount,
+            String currency) {
+        if (status != PaymentAttemptStatus.APPROVED && status != PaymentAttemptStatus.FAILED
+                && status != PaymentAttemptStatus.UNKNOWN && status != PaymentAttemptStatus.PENDING) {
+            throw new com.perfumestore.backend.shared.api.ApiRequestException(422, "REFUND_OUTCOME_INVALID",
+                    "Resultado simulado de reembolso invalido.");
+        }
+        payments.updateMockRefundState(providerRefundId, status, amount, currency, Instant.now());
+    }
 }

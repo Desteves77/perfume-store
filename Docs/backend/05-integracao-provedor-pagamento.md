@@ -41,3 +41,8 @@ As URLs de retorno devem ser allowlisted por ambiente, não derivadas do header 
 8. Confirmar que o perfil `prod` não inicializa MOCK.
 9. Executar testes de integração e uma homologação financeira controlada.
 10. Somente então avaliar a liberação comercial.
+## Extensão para reembolsos administrativos
+
+O contrato interno `PaymentProvider` inclui criação, consulta e simulação de reembolso. O resultado precisa ser persistido e processado pelo `RefundService`; uma ação administrativa não pode marcar reembolso como confirmado sem evidência do provedor. `MockPaymentProvider` implementa os resultados sintéticos apenas em `local`/`test`, enquanto o adaptador padrão falha controladamente quando não há provedor configurado.
+
+Reembolso confirmado não altera estoque. A substituição futura deve mapear referências externas, estados, autenticação de webhook, idempotência e reconciliação do provedor escolhido sem alterar o núcleo de pedidos, pagamentos ou estoque.
