@@ -483,3 +483,17 @@ O cookie `CART_TOKEN` e HttpOnly, tem Path `/api/v1`, SameSite configuravel e Se
 ## Fase 7 - estado do contrato
 
 Os endpoints de carrinho acima sao a primeira implementacao executavel. Pedido, checkout, frete no carrinho, reserva de estoque e pagamento continuam planejados para as fases seguintes.
+## Fase 8 — pedidos e checkout implementados
+
+Os contratos abaixo estão implementados; os demais endpoints descritos neste documento continuam sendo planejamento das fases futuras.
+
+### Criação e consulta de pedido
+
+- `POST /api/v1/checkout/orders` — `CUSTOMER` autenticado, CSRF obrigatório. Recebe `{ "addressId": "uuid", "quoteId": "uuid" }` e exige `Idempotency-Key` entre 8 e 100 caracteres. O servidor lê o carrinho da conta, revalida publicação, preço, disponibilidade, endereço e cotação, calcula subtotal/frete/total e retorna `201` com número público, estados, snapshots e reservas.
+- `GET /api/v1/me/orders` — `CUSTOMER`, paginação padrão e ordenação permitida `createdAt`, `total`, `status`.
+- `GET /api/v1/me/orders/{publicNumber}` — `CUSTOMER`; pedidos de outro cliente retornam `404` sem revelar existência.
+- `POST /api/v1/dev/payment/orders/{publicNumber}` — somente perfis `local` e `test`, para pagamento simulado `APPROVED`, `REJECTED` ou `FAILED`. Não existe no perfil de produção.
+
+Pedidos iniciam em `PENDING_PAYMENT`, pagamento `PENDING` e entrega `NOT_STARTED`. A criação reserva todas as apresentações em uma única transação, em ordem determinística de UUID. A mesma chave de idempotência retorna o pedido já criado; conteúdo diferente retorna `409`.
+
+Valores retornam `MoneyResponse` em BRL como string decimal. O cliente não envia preço, frete, subtotal ou total como autoridade. Os snapshots de item, endereço e frete não acompanham alterações posteriores do catálogo ou da conta.

@@ -188,3 +188,10 @@ V6 possui `carts` (proprietario por `user_id` ou `visitor_token_hash`), `cart_it
 As operacoes que modificam o mesmo carrinho bloqueiam a linha do carrinho no PostgreSQL. A unicidade do banco impede duas linhas para a mesma apresentacao; `version` e atualizacao condicional impedem sobrescrita silenciosa. O merge ordena os UUIDs dos dois carrinhos antes de obter locks, reduzindo risco de deadlock em logins concorrentes. O scheduler de limpeza usa lotes e TTL configuravel.
 
 A resposta do carrinho e DTO, com item, preco vigente, subtotal, disponibilidade informativa e avisos. Nenhum token, hash, sessao, dado administrativo, saldo fisico ou reservado e exposto.
+## Fase 8 — pedido e checkout
+
+A migration V7 cria `orders`, `order_items`, `order_address_snapshots`, `order_shipping_snapshots`, `order_reservations` e `order_status_history`. O pedido mantém estados comerciais, financeiros e logísticos separados, além de número público, fingerprint da requisição de idempotência, prazo de pagamento e valores históricos.
+
+O `OrderService` é a fronteira transacional entre carrinho, catálogo, frete e inventário. A criação usa o carrinho autenticado e limpa seus itens somente após persistir snapshots e reservar todas as apresentações. Falhas fazem rollback do pedido, snapshots, reservas e movimentações. A chave única `(user_id, idempotency_key)` é protegida pelo PostgreSQL; uma linha inicial de pedido funciona como lock transacional para reenvios concorrentes.
+
+Pedidos não pagos vencidos são processados em lotes com `FOR UPDATE SKIP LOCKED`, com reservas liberadas em ordem determinística. A aprovação simulada confirma reservas; aprovação após expiração leva o pedido a `PAYMENT_REVIEW` sem recriar estoque.

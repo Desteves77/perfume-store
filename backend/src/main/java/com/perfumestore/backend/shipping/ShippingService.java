@@ -52,4 +52,35 @@ public class ShippingService {
                 new ShippingDtos.EstimatedDelivery(properties.getMinDays(), properties.getMaxDays(), "BUSINESS"),
                 properties.getRuleVersion(), expiresAt);
     }
+
+    @Transactional(readOnly = true)
+    public ShippingQuoteRecord requireValidQuote(UUID userId, UUID quoteId, UUID addressId) {
+        ShippingQuoteRecord quote = quotes.findOwned(quoteId, userId).orElseThrow(() ->
+                new ApiRequestException(404, "SHIPPING_QUOTE_NOT_FOUND", "A cotação de frete não foi encontrada."));
+        if (!quote.serviceable() || !quote.expiresAt().isAfter(Instant.now())) {
+            throw new ApiRequestException(409, "SHIPPING_QUOTE_EXPIRED", "A cotação de frete expirou.");
+        }
+        if (!quote.addressId().equals(addressId)) {
+            throw new ApiRequestException(409, "SHIPPING_QUOTE_ADDRESS_MISMATCH",
+                    "A cotação não corresponde ao endereço informado.");
+        }
+        try {
+            properties.validateForQuote();
+        } catch (IllegalStateException exception) {
+            throw new ApiRequestException(503, "SHIPPING_UNCONFIGURED",
+                    "A regra comercial de frete não está configurada para este ambiente.");
+        }
+        AddressDtos.AddressData address = addresses.requireOwned(userId, addressId);
+        long postal = Long.parseLong(address.postalCode());
+        boolean served = properties.validatedRanges().stream().anyMatch(r -> postal >= r.from() && postal <= r.to());
+        if (!served || !quote.postalCode().equals(address.postalCode()) || !quote.city().equals(address.city())
+                || !quote.state().equals(address.state()) || !quote.ruleVersion().equals(properties.getRuleVersion())
+                || !quote.method().equals(properties.getMethod())
+                || quote.amount().compareTo(properties.getAmount().setScale(2, RoundingMode.UNNECESSARY)) != 0
+                || quote.minDays() != properties.getMinDays() || quote.maxDays() != properties.getMaxDays()) {
+            throw new ApiRequestException(409, "SHIPPING_QUOTE_OUTDATED",
+                    "A cotação de frete não corresponde mais à regra vigente.");
+        }
+        return quote;
+    }
 }

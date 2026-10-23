@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.Optional;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -27,5 +28,16 @@ public class ShippingQuoteRepository {
                 values (?, ?, ?, ?, ?, ?, true, ?, ?, 'BRL', ?, ?, ?, ?, ?)
                 """, id, userId, addressId, postalCode, city, state, method, amount, minDays, maxDays, ruleVersion,
                 Timestamp.from(expiresAt), Timestamp.from(createdAt));
+    }
+
+    public Optional<ShippingQuoteRecord> findOwned(UUID id, UUID userId) {
+        return jdbc.query("select * from perfumestore.shipping_quotes where id = ? and user_id = ?",
+                (rs, row) -> new ShippingQuoteRecord(rs.getObject("id", UUID.class), rs.getObject("user_id", UUID.class),
+                        rs.getObject("address_id", UUID.class), rs.getString("postal_code"), rs.getString("city"),
+                        rs.getString("state"), rs.getBoolean("serviceable"), rs.getString("method"),
+                        rs.getBigDecimal("amount"), rs.getString("currency"), rs.getInt("estimated_min_days"),
+                        rs.getInt("estimated_max_days"), rs.getString("rule_version"),
+                        rs.getTimestamp("expires_at").toInstant(), rs.getTimestamp("created_at").toInstant()), id, userId)
+                .stream().findFirst();
     }
 }

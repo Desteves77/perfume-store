@@ -84,4 +84,8 @@ public final class AddressDtos {
     /** Dados normalizados para os serviços internos, sem expor o proprietário na API. */
     public record AddressData(UUID id, UUID userId, String postalCode, String city, String state) {
     }
+
+    public record AddressSnapshot(UUID id, UUID userId, String recipientName, String label, String postalCode,
+            String street, String number, String complement, String neighborhood, String city, String state,
+            String reference) { }
 }

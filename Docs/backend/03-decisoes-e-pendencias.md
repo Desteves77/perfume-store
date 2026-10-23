@@ -171,3 +171,23 @@ As referências oficiais usadas para a integração são [Spring Session JDBC](h
 - A Fase 8 deve criar pedido, recalcular todos os itens, validar endereco/frete, reservar estoque atomicamente e guardar snapshots comerciais. O carrinho nao e garantia de compra.
 - A politica comercial de limites de compra, frete no checkout e prazo de reserva ainda depende das decisoes das fases seguintes.
 - Antes de producao, revisar o dominio final do cookie, SameSite, CORS, HTTPS, limpeza coordenada e observabilidade sem tokens.
+## Decisões técnicas da Fase 8
+
+- O checkout exige sessão `CUSTOMER`; `ADMIN` não assume identidade de cliente.
+- A chave `Idempotency-Key` é persistida por cliente com SHA-256 do payload de endereço/cotação. Reenvio idêntico recupera o resultado; reutilização incompatível retorna conflito.
+- A reserva de múltiplas apresentações usa a mesma transação e ordena UUIDs antes de adquirir os locks do inventário.
+- O carrinho é esvaziado atomicamente após a criação; em rollback ele permanece disponível.
+- O pagamento simulado é condicionado aos perfis `local` e `test`; o perfil `prod` não registra o controller.
+- O prazo de pagamento é configurável (`app.order.payment-ttl`) e a expiração é idempotente. O valor local/teste não é política comercial definitiva.
+
+## Pendências
+
+Continuam pendentes o provedor de pagamento real, webhooks, reconciliação, reembolsos e a homologação de condições comerciais reais de frete. A entrega física e a operação administrativa de pós-venda permanecem nas fases posteriores.
+## Fase 8 — decisões e pendências
+
+- A criação exige CUSTOMER autenticado, CSRF e `Idempotency-Key`; `addressId` e `quoteId` são os únicos dados de seleção recebidos, e subtotal, frete e total são recalculados no servidor.
+- O pedido inicia em `PENDING_PAYMENT`, pagamento em `PENDING` e entrega em `NOT_STARTED`. As apresentações são ordenadas por UUID antes das reservas para reduzir deadlocks.
+- Uma linha shell de pedido com `ON CONFLICT` serializa duas criações concorrentes com a mesma chave. O replay com fingerprint igual retorna o pedido original; payload diferente conflita.
+- Snapshots de item, endereço e frete preservam o histórico. O carrinho é limpo somente no sucesso transacional.
+- O simulador `POST /api/v1/dev/payment/orders/{publicNumber}` está disponível apenas nos perfis `local` e `test`; não há fallback financeiro em produção.
+- Prazo de pagamento e expiração são configuráveis. O scheduler usa `ORDER_EXPIRATION_INTERVAL_MS` e a operação comercial real depende de provedor, webhooks, reconciliação e frete real.

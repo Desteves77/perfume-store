@@ -155,3 +155,13 @@ AddressShippingIntegrationTest executou 8 testes aprovados. A suíte clean verif
 | VAL-093 | Persistencia apos restart | aplicacao e PostgreSQL isolados foram reiniciados; login, carrinho, itens e Flyway permaneceram validos | HTTP + Compose/PostgreSQL | 7 |
 
 `CartIntegrationTest` executou 9 testes aprovados, incluindo claim concorrente. A suite completa executou 58 testes aprovados, 0 falhas, 0 erros e 0 ignorados. O smoke HTTP executou 18 cenarios aprovados; a terceira execucao apos correcao do roteiro confirmou o resultado. A validacao do OpenAPI respondeu 200 e publicou os quatro caminhos reais de carrinho.
+
+## Evidências executadas na Fase 8
+
+- `OrderIntegrationTest`: 6 cenários com PostgreSQL real, incluindo snapshots, rollback de reservas, autorização/IDOR, expiração, idempotência concorrente e disputa da última unidade.
+- Regressão completa: 64 testes, 0 falhas, 0 erros, 0 ignorados; `clean verify` aprovou e gerou o JAR executável.
+- Smoke HTTP isolado contra o JAR: health 200, carrinho visitante com cookie, login/claim, endereço, cotação, subtotal R$ 55,00, frete R$ 15,90, total R$ 70,90, replay idempotente, aprovação simulada, 401 anônimo, 403 sem CSRF e persistência após reinicialização.
+- Migrations V1–V7 validadas no banco isolado; V1–V6 não foram alteradas e o banco de desenvolvimento não recebeu escritas.
+## Fase 8 — evidências de validação
+
+Foram adicionados testes de PostgreSQL real para criação com snapshots e reservas, idempotência sequencial e concorrente, rollback de múltiplas reservas, disputa da última unidade, expiração/liberação, aprovação simulada, isolamento HTTP e CSRF. A migration V7 foi aplicada em bancos Testcontainers novos. A contagem final e o smoke da fase são registrados em `Docs/execucoes/FASE_08_TESTES.md` após a execução completa.

@@ -79,6 +79,14 @@ public class AddressService {
                 record.state());
     }
 
+    @Transactional(readOnly = true)
+    public AddressDtos.AddressSnapshot requireOwnedSnapshot(UUID userId, UUID addressId) {
+        AddressRecord record = requireOwnedRecord(userId, addressId);
+        return new AddressDtos.AddressSnapshot(record.id(), record.userId(), record.recipientName(), record.label(),
+                record.postalCode(), record.street(), record.number(), record.complement(), record.neighborhood(),
+                record.city(), record.state(), record.reference());
+    }
+
     private AddressRecord requireOwnedRecord(UUID userId, UUID addressId) {
         return addresses.findByIdForUser(userId, addressId).orElseThrow(() -> new ApiRequestException(404,
                 "ADDRESS_NOT_FOUND", "O endereço não foi encontrado."));

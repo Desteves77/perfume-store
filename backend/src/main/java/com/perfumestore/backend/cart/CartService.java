@@ -178,6 +178,33 @@ public class CartService {
     }
 
     @Transactional
+    public CheckoutCart checkoutSnapshot(UUID userId) {
+        CartRecord cart = ensureCustomerCart(userId);
+        if (!cart.expiresAt().isAfter(Instant.now())) {
+            throw conflict("CART_EXPIRED", "O carrinho expirou e precisa ser reavaliado.");
+        }
+        List<CheckoutItem> items = carts.findItems(cart.id()).stream()
+                .map(item -> new CheckoutItem(item.id(), item.presentationId(), item.quantity(), item.version()))
+                .toList();
+        if (items.isEmpty()) {
+            throw conflict("CART_EMPTY", "O carrinho não possui itens para finalizar.");
+        }
+        return new CheckoutCart(cart.id(), cart.expiresAt(), items);
+    }
+
+    @Transactional
+    public void clearCustomerCart(UUID userId) {
+        CartRecord cart = carts.findActiveByUserForUpdate(userId).orElse(null);
+        if (cart != null) {
+            carts.deleteItems(cart.id());
+            carts.touch(cart.id(), cart.expiresAt(), Instant.now());
+        }
+    }
+
+    public record CheckoutCart(UUID id, Instant expiresAt, List<CheckoutItem> items) { }
+    public record CheckoutItem(UUID id, UUID presentationId, int quantity, long version) { }
+
+    @Transactional
     public int cleanup() {
         properties.validate();
         Instant now = Instant.now();

@@ -256,3 +256,18 @@ Implementação técnica da Fase 6 validada localmente. A configuração comerci
 ### Situacao
 
 Fase 7 implementada e validada localmente. A Fase 8 continua responsavel por checkout, pedido, snapshot de preco/frete e reserva de estoque. O carrinho nao e garantia de compra.
+
+## Atualizacao - Fase 8: checkout e pedidos
+
+- Migration `V7__create_order_tables.sql` adiciona pedidos, itens, snapshots de endereço/frete, referências de reservas, histórico e idempotência por cliente. V1–V6 não foram alteradas.
+- Checkout CUSTOMER em `POST /api/v1/checkout/orders`; consultas em `GET /api/v1/me/orders` e `GET /api/v1/me/orders/{publicNumber}`. Todos os valores são recalculados no backend.
+- Reservas de múltiplas apresentações são realizadas atomicamente em ordem determinística de UUID. Falha em qualquer item desfaz pedido, snapshots, reservas e histórico.
+- Pedido inicia como `PENDING_PAYMENT`, pagamento `PENDING` e entrega `NOT_STARTED`; expiração libera reservas de forma idempotente. O simulador HTTP existe somente em `local`/`test`.
+- Regressão final: 64 testes, 0 falhas, 0 erros, 0 ignorados; `clean verify` aprovado e JAR executável gerado.
+- Smoke HTTP isolado: health 200, login/claim de carrinho, endereço, cotação, pedido BRL 70,90, replay idempotente, aprovação simulada, 401 anônimo, 403 sem CSRF e persistência após reinicialização.
+- A operação comercial real segue bloqueada por provedor de pagamento/webhooks/reconciliação e regras comerciais reais de frete.
+## Fase 8 — Checkout e criação de pedidos
+
+Implementação técnica em andamento nesta execução: migration V7, pedidos com snapshots, checkout autenticado, reserva atômica de múltiplas apresentações, idempotência em PostgreSQL, consulta de histórico, expiração e simulador restrito a `local`/`test` foram criados. Os testes focados de PostgreSQL real passaram, incluindo concorrência.
+
+A Fase 8 só será marcada como concluída após `clean verify`, smoke HTTP contra o JAR final, validação de persistência/reinicialização, revisão do diff e commit local. A Fase 9 não foi iniciada.

@@ -369,3 +369,16 @@ Set-Location backend
 ```
 
 Os registros completos estao em `Docs/execucoes/FASE_07_RELATORIO.md`, `FASE_07_COMANDOS.md` e `FASE_07_TESTES.md`. A Fase 7 nao implementa pedidos, checkout, frete adicional, pagamento ou reserva de estoque.
+
+### Fechamento técnico da Fase 8
+
+Pedidos não pagos expiram conforme `ORDER_PAYMENT_TTL`/`app.order.payment-ttl`; o scheduler pode ser ajustado localmente por `ORDER_EXPIRATION_INTERVAL_MS` (milissegundos) e o lote por `ORDER_EXPIRATION_BATCH_SIZE`. A operação comercial real permanece bloqueada até provedor, webhooks, reconciliação e regras comerciais de frete serem definidos.
+
+O smoke da Fase 8 usou PostgreSQL 18.6 e Mailpit isolados, com aplicação em `127.0.0.1:18088`, banco em `127.0.0.1:55432` e SMTP em `127.0.0.1:51025`. O volume `perfumestore-phase8-data-v2` é separado do desenvolvimento e foi preservado após parar os containers. O indicador de saúde do Mailpit foi desabilitado somente nessa execução local; liveness/readiness, banco, Flyway e health agregado foram verificados.
+## Checkout e pedidos — Fase 8
+
+O checkout autenticado está disponível em `POST /api/v1/checkout/orders` e exige `addressId`, `quoteId`, CSRF e o header `Idempotency-Key`. O backend recalcula valores, valida a cotação vigente, cria snapshots e reserva o estoque; adicionar ao carrinho continua sem reservar unidades.
+
+Consultas usam `GET /api/v1/me/orders` e `GET /api/v1/me/orders/{publicNumber}`. O pagamento simulado existe apenas em `local` e `test`, em `POST /api/v1/dev/payment/orders/{publicNumber}`, com `APPROVED`, `REJECTED` ou `FAILED`; ele não representa cobrança real e não está disponível em produção.
+
+Pedidos não pagos expiram conforme `ORDER_PAYMENT_TTL`/`app.order.payment-ttl`; o scheduler usa `ORDER_EXPIRATION_INTERVAL`/`app.order.expiration-interval`. A operação comercial real permanece bloqueada até provedor, webhooks e regras comerciais de frete serem definidos.

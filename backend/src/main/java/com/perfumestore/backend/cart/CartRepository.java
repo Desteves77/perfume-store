@@ -164,6 +164,10 @@ public class CartRepository {
         return count == null ? 0 : count;
     }
 
+    public int deleteItems(UUID cartId) {
+        return jdbc.update("delete from perfumestore.cart_items where cart_id = ?", cartId);
+    }
+
     public Optional<CartMutationKeyRecord> findMutationKey(UUID cartId, String operationKey) {
         return jdbc.query("select operation_key, fingerprint from perfumestore.cart_mutation_keys where cart_id = ? and operation_key = ?",
                 (rs, row) -> new CartMutationKeyRecord(rs.getString("operation_key"), rs.getString("fingerprint")),

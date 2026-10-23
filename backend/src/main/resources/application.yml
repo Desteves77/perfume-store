@@ -59,6 +59,11 @@ app:
       max-bytes: ${CATALOG_IMAGE_MAX_BYTES:5242880}
       max-images-per-product: ${CATALOG_IMAGE_MAX_IMAGES:8}
       max-pixels: ${CATALOG_IMAGE_MAX_PIXELS:20000000}
+  order:
+    payment-ttl: ${ORDER_PAYMENT_TTL:15m}
+    expiration-interval: ${ORDER_EXPIRATION_INTERVAL:1m}
+    expiration-batch-size: ${ORDER_EXPIRATION_BATCH_SIZE:100}
+    expiration-enabled: ${ORDER_EXPIRATION_ENABLED:true}
   security:
     session-cookie:
       secure: ${SESSION_COOKIE_SECURE:false}
