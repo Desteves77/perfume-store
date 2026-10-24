@@ -1,5 +1,11 @@
 # PerfumeStore — status do projeto
 
+## Atualização — Fase 13
+
+Frontend MVP implementado em `frontend/` com loja pública, autenticação, catálogo, carrinho, endereços, frete, checkout, pedidos, área do cliente e painel ADMIN. Typecheck, lint, testes Vitest, build Next.js e smoke Playwright foram executados; a integração E2E pública também consultou o catálogo do backend da homologação HTTPS.
+
+Pagamento MOCK, frete sintético, Mailpit, provedor financeiro real, SMTP real e operação comercial pública continuam explicitamente fora de produção.
+
 ## Fase atual
 
 Fase 4.1 — homologação isolada do catálogo.
@@ -332,3 +338,9 @@ O SMTP real, a integracao financeira real e a operacao comercial de producao con
 Smoke HTTP isolado contra o JAR final aprovado no ambiente Compose `perfumestore-phase10-smoke11`: pedido aprovado, separação, envio, entrega, devolução com inspeção/reposição idempotente, reembolso MOCK sem reposição automática, cancelamento com liberação de reserva, autorização ADMIN/CUSTOMER/anônimo e CSRF. A aplicação e o PostgreSQL foram reiniciados sem perda; Flyway validou V1–V9. O perfil `prod` iniciou com pagamentos desabilitados, sem controllers MOCK e sem OpenAPI público.
 
 Resultado: implementação técnica da Fase 10 concluída e validada localmente. Reembolsos financeiros reais, políticas comerciais definitivas e operação de produção permanecem pendentes. A Fase 11 não foi iniciada.
+
+## Fase 13 — frontend e integração do MVP
+
+Foi criado o frontend Next.js/React/TypeScript/Tailwind em `frontend/`, com loja pública, conta do cliente, carrinho, checkout, pedidos, painel administrativo e cliente HTTP com cookies/CSRF. O build, typecheck, lint, Vitest e smoke Playwright público foram aprovados; a regressão backend passou com 82 testes.
+
+A fase permanece aberta: não foi executada nesta entrega uma jornada E2E autenticada completa de CUSTOMER/ADMIN nem a terminação HTTPS própria do frontend. Não houve alteração do backend, migration, push, deploy ou liberação comercial. A integração financeira real, SMTP real, frete comercial, storage produtivo, hospedagem e domínio continuam pendentes.

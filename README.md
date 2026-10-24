@@ -1,5 +1,22 @@
 # PerfumeStore
 
+## Frontend integrado — Fase 13
+
+O frontend MVP está em `frontend/`, com Next.js 15, React 19, TypeScript, Tailwind CSS e cliente HTTP baseado nos contratos reais da API. A entrega inclui loja pública, conta do cliente, carrinho, checkout, pedidos e painel administrativo.
+
+Comandos principais:
+
+```powershell
+cd frontend
+npm ci
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+Use `frontend/.env.example` para configurar `NEXT_PUBLIC_API_URL`. A integração MOCK, o frete sintético e o Mailpit permanecem exclusivos de homologação; não há liberação comercial ou deploy nesta fase.
+
 Base do backend do PerfumeStore. Esta entrega implementa as Fases 1, 2 e 3 do roadmap: aplicação Spring Boot executável, PostgreSQL local, Flyway, padrões de API, validação, erros, paginação, OpenAPI, segurança, autenticação por sessão e recuperação de acesso.
 
 ## Versões fixadas
@@ -440,3 +457,18 @@ docker compose -p perfumestore-phase10-acceptance -f compose.phase10-acceptance.
 docker compose -p perfumestore-phase10-acceptance -f compose.phase10-acceptance.yaml --env-file phase10-acceptance.env.example up -d postgres
 ```
 O ambiente usa PostgreSQL em `127.0.0.1:56400` e o volume `perfumestore-phase10-post-sale-postgres-data`. Para parar sem remover dados, use `docker compose ... stop`; não use `down -v`. O procedimento e as evidências da execução estão em `Docs/execucoes/FASE_10_*.md`. A operação comercial real e os reembolsos financeiros reais continuam bloqueados.
+
+### Fase 13 — frontend MVP
+
+O frontend Next.js/React/TypeScript/Tailwind está em `frontend/`. Para instalar e validar:
+
+```powershell
+Set-Location frontend
+npm ci
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+O cliente HTTP usa a sessão e o CSRF do backend, sem JWT ou sessão em `localStorage`; preços, frete, estoque, pagamentos e estados continuam sob autoridade da API. O frontend público foi validado contra o backend HTTPS local. A jornada autenticada completa, a composição HTTPS do frontend e a liberação comercial permanecem pendentes; consulte `Docs/frontend/` e `Docs/execucoes/FASE_13_*.md`.

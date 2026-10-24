@@ -1,0 +1,5 @@
+"use client";
+import Link from "next/link";
+import { useSession } from "@/lib/session";
+import { PageTitle, Panel, Spinner } from "@/components/ui";
+export default function AccountPage() { const { user, loading } = useSession(); if (loading) return <div className="loading-state"><Spinner /></div>; if (!user) return <div className="page container"><Panel><PageTitle title="Sua conta" description="Entre para acessar seus dados." /><Link className="button button-primary" href="/login?next=/account">Entrar</Link></Panel></div>; return <div className="page container"><PageTitle eyebrow="Área do cliente" title={"Olá, " + user.name.split(" ")[0]} description={user.email} /><div className="grid"><Link className="panel" href="/account/addresses"><h2>Endereços</h2><p className="muted">Gerencie os destinos de entrega.</p></Link><Link className="panel" href="/account/orders"><h2>Meus pedidos</h2><p className="muted">Acompanhe pagamentos e entregas.</p></Link><Link className="panel" href="/cart"><h2>Carrinho</h2><p className="muted">Revise seus itens antes da compra.</p></Link></div></div>; }

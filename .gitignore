@@ -29,5 +29,12 @@ backend/target/test-catalog-images/
 acceptance-data/
 acceptance-logs/
 phase12-backups/
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+frontend/.env.*.local
+frontend/test-results/
+frontend/playwright-report/
+frontend/tsconfig.tsbuildinfo
 phase7-data/
 Docs/execucoes/logs/

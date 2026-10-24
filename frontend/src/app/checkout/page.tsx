@@ -1,0 +1,19 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { apiClient, operationKey } from "@/lib/api";
+import { money } from "@/lib/format";
+import type { Address, Cart, Order, Quote } from "@/lib/types";
+import { Button, ErrorNotice, Notice, PageTitle, Panel, Select, Spinner } from "@/components/ui";
+
+export default function CheckoutPage() {
+  const router = useRouter(); const [cart, setCart] = useState<Cart>(); const [addresses, setAddresses] = useState<Address[]>([]); const [addressId, setAddressId] = useState(""); const [quote, setQuote] = useState<Quote>(); const [error, setError] = useState<unknown>(); const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false);
+  useEffect(() => { Promise.all([apiClient.get<Cart>("/api/v1/cart"), apiClient.get<Address[]>("/api/v1/me/addresses")]).then(([cartResult, addressesResult]) => { setCart(cartResult); setAddresses(addressesResult); setAddressId(addressesResult[0]?.id ?? ""); }).catch(setError).finally(() => setLoading(false)); }, []);
+  const getQuote = async () => { if (!addressId) return; setError(undefined); try { setQuote(await apiClient.post<Quote>("/api/v1/shipping/quotes", { addressId })); } catch (reason) { setError(reason); } };
+  const createOrder = async () => { if (!quote || !cart) return; setBusy(true); setError(undefined); try { const order = await apiClient.post<Order>("/api/v1/checkout/orders", { addressId, quoteId: quote.quoteId }, operationKey()); router.push("/account/orders/" + order.publicNumber); } catch (reason) { setError(reason); } finally { setBusy(false); } };
+  if (loading) return <div className="loading-state"><Spinner /></div>;
+  if (!cart || cart.items.length === 0) return <div className="page container"><Notice tone="warning">Seu carrinho está vazio.</Notice><Link href="/catalog" className="button button-primary">Voltar ao catálogo</Link></div>;
+  return <div className="page container"><PageTitle eyebrow="Checkout" title="Finalizar pedido" description="O backend recalcula preços, frete, disponibilidade e total antes de criar o pedido." />{error !== undefined && <ErrorNotice error={error} />}<div className="two-col"><div className="stack"><Panel><h2>Entrega</h2>{addresses.length === 0 ? <><p className="muted">Cadastre um endereço antes de continuar.</p><Link href="/account/addresses" className="button button-secondary">Cadastrar endereço</Link></> : <><Select label="Endereço" value={addressId} onChange={(event) => { setAddressId(event.target.value); setQuote(undefined); }}>{addresses.map((address) => <option key={address.id} value={address.id}>{address.label || address.recipientName} · {address.city}/{address.state}</option>)}</Select><Button variant="secondary" onClick={getQuote}>Calcular frete</Button>{quote && <Notice tone={quote.serviceable ? "success" : "warning"}>{quote.serviceable ? quote.method + " · " + money(quote.amount) + " · " + quote.estimatedDelivery.minDays + "–" + quote.estimatedDelivery.maxDays + " dias" : "Destino não atendido."}</Notice>}</>}</Panel><Panel><h2>Itens</h2>{cart.items.map((item) => <div className="summary-line" key={item.id}><span>{item.quantity} × {item.productName}</span><strong>{money(item.lineTotal)}</strong></div>)}</Panel></div><Panel><h2>Resumo</h2><div className="summary-line"><span>Subtotal</span><strong>{money(cart.subtotal)}</strong></div><div className="summary-line"><span>Frete</span><strong>{quote ? money(quote.amount) : "Calcule acima"}</strong></div><hr /><p className="total-line"><span>Total confirmado pelo backend após o checkout</span><strong>{quote ? money(Number(cart.subtotal.amount) + Number(quote.amount)) : "—"}</strong></p><Button loading={busy} disabled={!quote?.serviceable || !cart.canCheckout} onClick={createOrder}>Criar pedido</Button></Panel></div></div>;
+}
