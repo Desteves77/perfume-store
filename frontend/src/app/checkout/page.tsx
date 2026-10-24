@@ -5,12 +5,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, operationKey } from "@/lib/api";
 import { money } from "@/lib/format";
-import type { Address, Cart, Order, Quote } from "@/lib/types";
+import type { Address, Cart, Order, Page, Quote } from "@/lib/types";
 import { Button, ErrorNotice, Notice, PageTitle, Panel, Select, Spinner } from "@/components/ui";
 
 export default function CheckoutPage() {
   const router = useRouter(); const [cart, setCart] = useState<Cart>(); const [addresses, setAddresses] = useState<Address[]>([]); const [addressId, setAddressId] = useState(""); const [quote, setQuote] = useState<Quote>(); const [error, setError] = useState<unknown>(); const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false);
-  useEffect(() => { Promise.all([apiClient.get<Cart>("/api/v1/cart"), apiClient.get<Address[]>("/api/v1/me/addresses")]).then(([cartResult, addressesResult]) => { setCart(cartResult); setAddresses(addressesResult); setAddressId(addressesResult[0]?.id ?? ""); }).catch(setError).finally(() => setLoading(false)); }, []);
+  useEffect(() => { Promise.all([apiClient.get<Cart>("/api/v1/cart"), apiClient.get<Page<Address>>("/api/v1/me/addresses?page=0&size=50&sort=createdAt,desc")]).then(([cartResult, addressesResult]) => { setCart(cartResult); setAddresses(addressesResult.items); setAddressId(addressesResult.items[0]?.id ?? ""); }).catch(setError).finally(() => setLoading(false)); }, []);
   const getQuote = async () => { if (!addressId) return; setError(undefined); try { setQuote(await apiClient.post<Quote>("/api/v1/shipping/quotes", { addressId })); } catch (reason) { setError(reason); } };
   const createOrder = async () => { if (!quote || !cart) return; setBusy(true); setError(undefined); try { const order = await apiClient.post<Order>("/api/v1/checkout/orders", { addressId, quoteId: quote.quoteId }, operationKey()); router.push("/account/orders/" + order.publicNumber); } catch (reason) { setError(reason); } finally { setBusy(false); } };
   if (loading) return <div className="loading-state"><Spinner /></div>;

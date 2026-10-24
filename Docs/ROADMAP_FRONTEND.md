@@ -595,3 +595,9 @@ Não é necessário construir um dashboard com gráficos para o MVP. A entrada a
 - Documentar decisões e pendências encontradas.
 - Ao concluir uma etapa, informar alterações, verificações realizadas e limitações restantes.
 
+### Continuação da Fase 13 — resultado da homologação
+
+O frontend foi validado com navegador real sobre HTTPS e backend isolado. A matriz executada cobriu visitante, CUSTOMER, ADMIN, checkout, pagamento MOCK autorizado, pós-venda, notificações, CSRF e isolamento entre clientes. Os critérios executados estão evidenciados em `Docs/execucoes/FASE_13_HOMOLOGACAO_*.md`.
+
+O resultado é um MVP frontend integrado tecnicamente. A homologação não representa liberação comercial nem substitui provedor financeiro, SMTP, frete, storage ou infraestrutura de produção.
+

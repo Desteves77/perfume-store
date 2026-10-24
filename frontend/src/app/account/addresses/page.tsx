@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api";
-import type { Address } from "@/lib/types";
+import type { Address, Page } from "@/lib/types";
 import { Button, ErrorNotice, Field, Notice, PageTitle, Panel, Spinner } from "@/components/ui";
 
 const empty = { recipientName: "", label: "", postalCode: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "", reference: "" };
 export default function AddressesPage() {
   const [addresses, setAddresses] = useState<Address[]>([]); const [form, setForm] = useState(empty); const [editing, setEditing] = useState<Address>(); const [error, setError] = useState<unknown>(); const [message, setMessage] = useState(""); const [loading, setLoading] = useState(true);
-  const load = () => apiClient.get<Address[]>("/api/v1/me/addresses").then(setAddresses).catch(setError).finally(() => setLoading(false));
+  const load = () => apiClient.get<Page<Address>>("/api/v1/me/addresses?page=0&size=50&sort=createdAt,desc").then((data) => setAddresses(data.items)).catch(setError).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
   const field = (name: keyof typeof empty) => ({ value: form[name], onChange: (event: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [name]: event.target.value }) });
   const submit = async (event: React.FormEvent) => { event.preventDefault(); setError(undefined); try { if (editing) await apiClient.patch<Address>("/api/v1/me/addresses/" + editing.id, { ...form, version: editing.version }); else await apiClient.post<Address>("/api/v1/me/addresses", form); setMessage(editing ? "Endereço atualizado." : "Endereço cadastrado."); setForm(empty); setEditing(undefined); await load(); } catch (reason) { setError(reason); } };

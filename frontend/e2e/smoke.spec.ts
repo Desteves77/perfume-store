@@ -7,8 +7,9 @@ test("catálogo público apresenta a navegação principal", async ({ page }) =>
 });
 
 test("frontend consegue consultar o catálogo público do backend", async ({ page, request }) => {
-  const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080").replace(/\/$/, "");
-  const response = await request.get(apiUrl + "/api/v1/catalog/products?page=0&size=12&sort=name,asc", { ignoreHTTPSErrors: true });
+  const origin = process.env.FRONTEND_E2E_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  const apiUrl = new URL("/api/v1/catalog/products?page=0&size=12&sort=name,asc", origin).toString();
+  const response = await request.get(apiUrl, { ignoreHTTPSErrors: true });
   expect(response.ok()).toBeTruthy();
   await page.goto("/catalog");
   await expect(page.getByRole("heading", { name: "Encontre sua assinatura" })).toBeVisible();

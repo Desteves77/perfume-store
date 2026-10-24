@@ -13,6 +13,8 @@ const labels: Record<string, string> = {
   PENDING: "Pendente", APPROVED: "Aprovado", REJECTED: "Recusado", PAYMENT_REVIEW: "Pagamento em revisão",
   NOT_STARTED: "Não iniciado", PREPARING: "Em separação", SHIPPED: "Enviado", DELIVERED: "Entregue",
   SENT: "Enviado", RETRY_PENDING: "Em nova tentativa", FAILED: "Falhou", PROCESSING: "Processando",
+  PENDING_PROVIDER: "Pendente no provedor", REQUESTED: "Solicitada",
+  AWAITING_INSPECTION: "Aguardando inspeção", INSPECTED: "Inspecionada", RESTOCKED: "Reposta",
 };
 
 export const statusLabel = (value?: string) => value ? labels[value] ?? value.toLowerCase().replaceAll("_", " ").replace(/^\w/, (char) => char.toUpperCase()) : "—";

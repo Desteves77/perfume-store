@@ -7,3 +7,5 @@ O frontend da Fase 13 fica isolado em `frontend/` e utiliza Next.js 15.5.28, Rea
 As áreas são separadas em loja pública, conta do cliente e painel administrativo. O `AdminShell` oculta a operação para perfis que não sejam ADMIN, mas cada chamada permanece protegida pelo backend.
 
 O frontend não possui banco, estoque, carrinho comercial ou máquina de estados própria. Valores são formatados para apresentação com base nos DTOs do backend; checkout, frete, disponibilidade, pagamento e pós-venda são confirmados pela API.
+
+Na homologação integrada, o navegador acessa uma única origem HTTPS em `https://localhost:19680`. O Caddy encaminha a aplicação para o Next.js e `/api/*` para o Spring Boot. Essa topologia mantém cookies e CSRF na mesma origem e é exclusiva do ambiente isolado.

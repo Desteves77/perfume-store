@@ -460,6 +460,12 @@ O ambiente usa PostgreSQL em `127.0.0.1:56400` e o volume `perfumestore-phase10-
 
 ### Fase 13 — frontend MVP
 
+### Homologação integrada da Fase 13
+
+A continuação da Fase 13 foi homologada com navegador real no ambiente isolado `perfumestore-phase13-acceptance`. Acesso: `https://localhost:19680`; o proxy Caddy encaminha a loja para o Next.js e `/api/*` para o backend. A suíte Playwright validou CUSTOMER, ADMIN, checkout, pagamento MOCK autorizado, pós-venda, notificações, CSRF e isolamento entre clientes.
+
+Para reproduzir o ambiente, consulte `Docs/execucoes/FASE_13_HOMOLOGACAO_RELATORIO.md` e `Docs/frontend/05-operacao-e-ambientes.md`. Não é produção: não há pagamento real, SMTP real, frete comercial definitivo ou liberação pública.
+
 O frontend Next.js/React/TypeScript/Tailwind está em `frontend/`. Para instalar e validar:
 
 ```powershell

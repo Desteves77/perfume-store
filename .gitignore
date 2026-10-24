@@ -36,5 +36,6 @@ frontend/.env.*.local
 frontend/test-results/
 frontend/playwright-report/
 frontend/tsconfig.tsbuildinfo
+frontend/certificates/
 phase7-data/
 Docs/execucoes/logs/

@@ -344,3 +344,13 @@ Resultado: implementação técnica da Fase 10 concluída e validada localmente.
 Foi criado o frontend Next.js/React/TypeScript/Tailwind em `frontend/`, com loja pública, conta do cliente, carrinho, checkout, pedidos, painel administrativo e cliente HTTP com cookies/CSRF. O build, typecheck, lint, Vitest e smoke Playwright público foram aprovados; a regressão backend passou com 82 testes.
 
 A fase permanece aberta: não foi executada nesta entrega uma jornada E2E autenticada completa de CUSTOMER/ADMIN nem a terminação HTTPS própria do frontend. Não houve alteração do backend, migration, push, deploy ou liberação comercial. A integração financeira real, SMTP real, frete comercial, storage produtivo, hospedagem e domínio continuam pendentes.
+
+### Continuação da Fase 13 — homologação integrada do frontend
+
+A continuação foi homologada em ambiente isolado próprio, com Next.js standalone, Caddy HTTPS, Spring Boot, PostgreSQL 18.6 e Mailpit. O Playwright executou jornada real de CUSTOMER e ADMIN: catálogo, carrinho anônimo, cadastro/login, merge, endereço, frete, checkout, CSRF, pagamento MOCK autorizado, pedido, separação, envio, entrega, reembolso MOCK, devolução, inspeção, reposição, notificações e isolamento entre clientes.
+
+Foram corrigidas lacunas reais: paginação de endereços (`PageResponse`) no frontend, publicação de produtos no painel administrativo, controles de pós-venda ausentes na interface, overflow mobile de 14 px e seletores/esperas E2E frágeis. O frontend final passou typecheck, ESLint, Vitest (2 testes), build (22 rotas) e Playwright (5 testes), incluindo recuperação de senha pelo Mailpit. O backend permaneceu sem alterações funcionais e `clean verify` passou com 82 testes.
+
+O ambiente HTTPS final usa `https://localhost:19680`, com `/` encaminhado ao frontend e `/api/*` ao backend; o HTTP `19681` redireciona para HTTPS. Cookies `SESSION` e `XSRF-TOKEN` foram observados no navegador com `Secure` e `SameSite=Lax`; `SESSION` também `HttpOnly`. O PostgreSQL isolado foi preservado durante reinicialização dos serviços e os dados sintéticos permaneceram disponíveis.
+
+Esta homologação não libera produção: pagamento real, SMTP real, frete comercial definitivo, storage produtivo, hospedagem, domínio e lançamento continuam pendentes. A Fase 14 não foi iniciada.
