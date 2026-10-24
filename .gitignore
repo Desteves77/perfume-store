@@ -28,5 +28,6 @@ phase5-data/
 backend/target/test-catalog-images/
 acceptance-data/
 acceptance-logs/
+phase12-backups/
 phase7-data/
 Docs/execucoes/logs/

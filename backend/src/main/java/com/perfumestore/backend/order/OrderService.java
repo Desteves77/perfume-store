@@ -223,7 +223,7 @@ public class OrderService {
         return response(previous);
     }
     private OrderDtos.OrderResponse response(OrderRecord order) {
-        List<OrderDtos.OrderItemResponse> items = orders.items(order.id()).stream().map(i -> new OrderDtos.OrderItemResponse(i.presentationId(), i.productId(), i.sku(), i.productName(), i.volume(), i.unit(), i.quantity(), money(i.unitPrice()), money(i.lineTotal()))).toList();
+        List<OrderDtos.OrderItemResponse> items = orders.items(order.id()).stream().map(i -> new OrderDtos.OrderItemResponse(i.id(), i.presentationId(), i.productId(), i.sku(), i.productName(), i.volume(), i.unit(), i.quantity(), money(i.unitPrice()), money(i.lineTotal()))).toList();
         OrderAddressRecord a = orders.address(order.id());
         OrderShippingRecord s = orders.shipping(order.id());
         List<OrderDtos.HistoryResponse> history = orders.history(order.id()).stream().map(h -> new OrderDtos.HistoryResponse(h.fromStatus(), h.toStatus(), h.event(), h.createdAt())).toList();

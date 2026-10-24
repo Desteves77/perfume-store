@@ -18,7 +18,7 @@ public final class OrderDtos {
     public record CheckoutRequest(@NotNull(message = "Informe o endereço de entrega.") UUID addressId,
             @NotNull(message = "Informe a cotação de frete.") UUID quoteId) { }
 
-    public record OrderItemResponse(UUID presentationId, UUID productId, String sku, String productName,
+    public record OrderItemResponse(UUID orderItemId, UUID presentationId, UUID productId, String sku, String productName,
             BigDecimal volume, String unit, int quantity, MoneyResponse unitPrice, MoneyResponse lineTotal) { }
 
     public record AddressSnapshot(String recipientName, String label, String postalCode, String street, String number,

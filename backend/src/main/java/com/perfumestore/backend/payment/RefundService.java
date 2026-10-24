@@ -44,7 +44,7 @@ public class RefundService {
                 new ApiRequestException(404, "ORDER_NOT_FOUND", "O pedido nÃ£o foi encontrado."));
         RefundRecord existing = refunds.findByOrderForUpdate(order.id()).orElse(null);
         String normalizedReason = required(reason);
-        String idempotency = normalizeKey(key, "refund:" + publicNumber + ":" + digest(normalizedReason));
+        String idempotency = normalizeKey(key, "refund:" + digest(publicNumber + ":" + normalizedReason));
         String fingerprint = digest(order.id() + "|" + normalizedReason);
         if (existing != null) {
             if (!existing.requestFingerprint().equals(fingerprint)) throw conflict("REFUND_ALREADY_REQUESTED", "JÃ¡ existe uma solicitaÃ§Ã£o de reembolso para este pedido.");

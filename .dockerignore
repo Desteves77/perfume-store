@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+backend/target
+backend/data
+acceptance-data
+acceptance-logs
+Docs/execucoes/logs
+*.log
+*.p12
+*.jks
+*.key
+*.pem

@@ -1,0 +1,9 @@
+localhost:443 {
+    tls internal
+    encode gzip
+    reverse_proxy app:8080
+}
+
+:80 {
+    redir https://localhost:18680{uri} 308
+}

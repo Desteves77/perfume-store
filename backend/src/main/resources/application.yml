@@ -34,6 +34,7 @@ springdoc:
 
 server:
   shutdown: graceful
+  forward-headers-strategy: framework
   servlet:
     session:
       cookie:
@@ -51,6 +52,18 @@ management:
     health:
       show-details: never
       show-components: never
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
 
 app:
   catalog:

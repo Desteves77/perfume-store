@@ -309,19 +309,25 @@ A implementação técnica inclui administração de pedidos, separação, envio
 
 ### Atualização final — Fase 10
 
+## Fase 12 — homologacao integrada e preparacao operacional
+
+Concluida tecnicamente em ambiente isolado: suite final com 82 testes aprovados, Docker multi-stage nao-root, Compose com PostgreSQL/Mailpit/Caddy HTTPS, health liveness/readiness, smoke integrado, backup/restore comprovado e documentacao operacional. As evidencias estao em `Docs/execucoes/FASE_12_*.md`.
+
+Esta fase nao habilita producao: pagamento MOCK, frete sintetico, Mailpit e certificado local sao exclusivos de homologacao. Provedor financeiro real, SMTP produtivo, storage de imagens e regras comerciais definitivas permanecem pendentes.
+
 ## Fase 11 - notificacoes transacionais
 
 A Fase 11 adiciona uma outbox persistente em V10 para `ORDER_RECEIVED`, `PAYMENT_APPROVED` e `ORDER_SHIPPED`. Os eventos sao deduplicados por chave logica dentro da transacao comercial; o envio SMTP ocorre depois, por processador com lease PostgreSQL, `SKIP LOCKED`, tentativas limitadas, backoff e estado terminal.
 
 O transporte local usa Mailpit e o perfil `test` usa capturador em memoria. O perfil `prod` mantem notificacoes desabilitadas por padrao e nao usa Mailpit como fallback. Recuperacao de senha continua especializada para manter o token somente como hash; a mensagem foi revisada sem colocar o token recuperavel na outbox.
 
-A implementacao e a validacao da fase estao sendo registradas em `Docs/execucoes/FASE_11_*.md`. A Fase 12 nao foi iniciada.
+A implementacao e a validacao da fase estao registradas em `Docs/execucoes/FASE_11_*.md`. A Fase 12 foi concluida tecnicamente sem liberar producao.
 
 ### Fechamento tecnico da Fase 11
 
 V10 e a outbox transacional foram validadas com 81 testes, 0 falhas, 0 erros e 0 ignorados. O smoke contra o JAR final capturou no Mailpit pedido recebido, pagamento aprovado e pedido enviado; retry, deduplicacao, rollback, claim concorrente e escape HTML foram cobertos. O PostgreSQL isolado foi reiniciado sem perda, Flyway permaneceu na V10 e os containers foram preservados para reproducao.
 
-O SMTP real, a integracao financeira real e a operacao comercial de producao continuam pendentes. A Fase 12 nao foi iniciada.
+O SMTP real, a integracao financeira real e a operacao comercial de producao continuam pendentes. A Fase 12 validou apenas a preparacao tecnica isolada.
 
 Smoke HTTP isolado contra o JAR final aprovado no ambiente Compose `perfumestore-phase10-smoke11`: pedido aprovado, separação, envio, entrega, devolução com inspeção/reposição idempotente, reembolso MOCK sem reposição automática, cancelamento com liberação de reserva, autorização ADMIN/CUSTOMER/anônimo e CSRF. A aplicação e o PostgreSQL foram reiniciados sem perda; Flyway validou V1–V9. O perfil `prod` iniciou com pagamentos desabilitados, sem controllers MOCK e sem OpenAPI público.
 

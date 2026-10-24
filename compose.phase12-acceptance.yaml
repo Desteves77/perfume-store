@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:18.6
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${PHASE12_POSTGRES_PORT:-56600}:5432"
+    volumes:
+      - perfumestore-phase12-acceptance-postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  mailpit:
+    image: axllent/mailpit:v1.27.8
+    ports:
+      - "127.0.0.1:${PHASE12_SMTP_PORT:-11425}:1025"
+      - "127.0.0.1:${PHASE12_MAILPIT_PORT:-18625}:8025"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:8025/api/v1/info"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SERVER_PORT: 8080
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      CORS_ALLOWED_ORIGINS: https://localhost:18680
+      CORS_ALLOW_CREDENTIALS: "true"
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_SAME_SITE: Lax
+      CSRF_COOKIE_SECURE: "true"
+      CSRF_COOKIE_SAME_SITE: Lax
+      CART_COOKIE_SECURE: "true"
+      CART_COOKIE_SAME_SITE: Lax
+      CATALOG_IMAGE_STORAGE_ROOT: /app/data/catalog-images
+      SHIPPING_ENABLED: "true"
+      SHIPPING_SYNTHETIC: "true"
+      SHIPPING_METHOD: INITIAL_RULE_PHASE12
+      SHIPPING_RULE_VERSION: phase12-synthetic-v1
+      SHIPPING_AMOUNT: "15.90"
+      SHIPPING_MIN_DAYS: "3"
+      SHIPPING_MAX_DAYS: "6"
+      SHIPPING_SERVED_RANGES: 01000000-09999999
+      PAYMENT_ENABLED: "true"
+      PAYMENT_PROVIDER: MOCK
+      PAYMENT_MOCK_WEBHOOK_SECRET: phase12-only-mock-secret
+      PAYMENT_MOCK_CHECKOUT_BASE_URL: mock://phase12-checkout
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM: no-reply@perfumestore.local
+      NOTIFICATION_ENABLED: "true"
+      NOTIFICATION_DISPATCH_ENABLED: "true"
+      FRONTEND_PASSWORD_RESET_URL: https://localhost:18680/reset-password
+    volumes:
+      - perfumestore-phase12-acceptance-images:/app/data/catalog-images
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  https:
+    image: caddy:2.10.2-alpine
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PHASE12_HTTPS_PORT:-18680}:443"
+      - "127.0.0.1:${PHASE12_HTTP_PORT:-18080}:80"
+    volumes:
+      - ./infra/phase12/Caddyfile:/etc/caddy/Caddyfile:ro
+      - perfumestore-phase12-caddy-data:/data
+      - perfumestore-phase12-caddy-config:/config
+
+volumes:
+  perfumestore-phase12-acceptance-postgres-data:
+  perfumestore-phase12-acceptance-images:
+  perfumestore-phase12-caddy-data:
+  perfumestore-phase12-caddy-config:
