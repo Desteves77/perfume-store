@@ -2,11 +2,11 @@ services:
   postgres:
     image: postgres:18.6
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be defined in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be defined in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be defined in .env}
     ports:
-      - "127.0.0.1:${POSTGRES_PORT}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-54329}:5432"
     volumes:
       - perfumestore-postgres-data:/var/lib/postgresql
     healthcheck:
@@ -19,14 +19,84 @@ services:
   mailpit:
     image: axllent/mailpit:v1.27.8
     ports:
-      - "127.0.0.1:${MAILPIT_SMTP_PORT}:1025"
-      - "127.0.0.1:${MAILPIT_UI_PORT}:8025"
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
     healthcheck:
       test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:8025/api/v1/info"]
       interval: 5s
       timeout: 5s
       retries: 12
       start_period: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:?POSTGRES_DB must be defined in .env}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:?POSTGRES_USER must be defined in .env}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be defined in .env}
+      SERVER_PORT: 8080
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3100}
+      CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SESSION_COOKIE_SAME_SITE: ${SESSION_COOKIE_SAME_SITE:-Lax}
+      CSRF_COOKIE_SECURE: ${CSRF_COOKIE_SECURE:-false}
+      CSRF_COOKIE_SAME_SITE: ${CSRF_COOKIE_SAME_SITE:-Lax}
+      CART_COOKIE_SECURE: ${CART_COOKIE_SECURE:-false}
+      CART_COOKIE_SAME_SITE: ${CART_COOKIE_SAME_SITE:-Lax}
+      CATALOG_IMAGE_STORAGE_ROOT: /app/data/catalog-images
+      SHIPPING_ENABLED: ${SHIPPING_ENABLED:-false}
+      SHIPPING_SYNTHETIC: ${SHIPPING_SYNTHETIC:-true}
+      SHIPPING_METHOD: ${SHIPPING_METHOD:-INITIAL_RULE_LOCAL}
+      SHIPPING_RULE_VERSION: ${SHIPPING_RULE_VERSION:-local-synthetic-v1}
+      SHIPPING_AMOUNT: ${SHIPPING_AMOUNT:-15.90}
+      SHIPPING_MIN_DAYS: ${SHIPPING_MIN_DAYS:-3}
+      SHIPPING_MAX_DAYS: ${SHIPPING_MAX_DAYS:-6}
+      SHIPPING_SERVED_RANGES: ${SHIPPING_SERVED_RANGES:-01000000-09999999}
+      PAYMENT_ENABLED: ${PAYMENT_ENABLED:-false}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM: ${MAIL_FROM:-no-reply@perfumestore.local}
+      NOTIFICATION_ENABLED: ${NOTIFICATION_ENABLED:-true}
+      NOTIFICATION_DISPATCH_ENABLED: ${NOTIFICATION_DISPATCH_ENABLED:-true}
+      FRONTEND_PASSWORD_RESET_URL: ${FRONTEND_PASSWORD_RESET_URL:-http://localhost:3100/reset-password}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-18081}:8080"
+    volumes:
+      - ./backend/data/catalog-images:/app/data/catalog-images
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${FRONTEND_API_URL:-http://localhost:18081}
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3100}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
 volumes:
   perfumestore-postgres-data:

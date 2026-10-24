@@ -1,5 +1,32 @@
 # PerfumeStore
 
+## Execução local padrão
+
+Depois de copiar `.env.example` para `.env`, o comando principal para abrir a loja local é:
+
+```powershell
+docker compose up -d
+```
+
+Esse Compose inicia PostgreSQL, Mailpit, o backend Spring Boot e o frontend Next.js, todos publicados somente em `localhost`. A loja fica em `http://localhost:3100`, a API em `http://localhost:18081` e o Mailpit em `http://localhost:8025`.
+
+Alternativas equivalentes, com validação explícita e logs de estado:
+
+```powershell
+.\scripts\dev-start.ps1
+.\scripts\health-check.ps1 -Environment dev
+```
+
+Para parar sem remover containers, redes ou volumes:
+
+```powershell
+.\scripts\dev-stop.ps1
+```
+
+O ambiente de homologação integrado permanece separado e usa `scripts\acceptance-start.ps1`. Ele utiliza HTTPS local, Mailpit, frete sintético e PaymentProvider MOCK exclusivamente para testes. A configuração de produção é apenas um template em `infra\compose\production.yaml` e não inclui serviços de desenvolvimento.
+
+Consulte [infraestrutura e ambientes](Docs/infraestrutura/01-ambientes-docker.md) para portas, volumes, troubleshooting e classificação dos arquivos históricos.
+
 ## Frontend integrado — Fase 13
 
 O frontend MVP está em `frontend/`, com Next.js 15, React 19, TypeScript, Tailwind CSS e cliente HTTP baseado nos contratos reais da API. A entrega inclui loja pública, conta do cliente, carrinho, checkout, pedidos e painel administrativo.
@@ -52,6 +79,12 @@ backend/
 compose.yaml
 .env.example
 .github/workflows/backend-ci.yml
+infra/
+  compose/production.yaml
+  env/production.env.example
+  legacy/README.md
+scripts/
+  dev-start.ps1  acceptance-start.ps1  health-check.ps1
 ```
 
 Os packages de domínio organizam a implementação por contexto. Auth e catálogo já possuem suas classes da fase atual; estoque, carrinho, pedidos, pagamentos e demais módulos serão materializados nas fases correspondentes.
@@ -174,7 +207,7 @@ java -jar target\perfumestore-backend-0.0.1-SNAPSHOT.jar --spring.profiles.activ
 - **Java 8 aparece no PATH:** defina `JAVA_HOME` para um JDK 17 e coloque `$env:JAVA_HOME\bin` no início de `Path` na sessão atual.
 - **Docker indisponível:** confirme `docker info` e o Docker Desktop; o teste de integração depende do daemon.
 - **Porta 54329 ocupada:** altere `POSTGRES_PORT` no `.env` e também `SPRING_DATASOURCE_URL` para a mesma porta.
-- **Porta 8080 ocupada:** altere `SERVER_PORT` no `.env` e consulte o health check na nova porta.
+- **Porta 18081 ocupada:** altere `BACKEND_PORT`, `FRONTEND_API_URL` e `CORS_ALLOWED_ORIGINS` no `.env` de forma coerente e consulte o health check na nova porta.
 - **Perfil incorreto:** use `-Dspring-boot.run.profiles=local` no plugin ou `--spring.profiles.active=local` no jar. Produção exige todas as variáveis `SPRING_DATASOURCE_*` explicitamente.
 - **Migration inconsistente:** interrompa a aplicação e investigue o histórico; não use `flyway clean`, reparo automático ou remoção do volume para esconder divergências.
 

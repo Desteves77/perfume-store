@@ -354,3 +354,11 @@ Foram corrigidas lacunas reais: paginação de endereços (`PageResponse`) no fr
 O ambiente HTTPS final usa `https://localhost:19680`, com `/` encaminhado ao frontend e `/api/*` ao backend; o HTTP `19681` redireciona para HTTPS. Cookies `SESSION` e `XSRF-TOKEN` foram observados no navegador com `Secure` e `SameSite=Lax`; `SESSION` também `HttpOnly`. O PostgreSQL isolado foi preservado durante reinicialização dos serviços e os dados sintéticos permaneceram disponíveis.
 
 Esta homologação não libera produção: pagamento real, SMTP real, frete comercial definitivo, storage produtivo, hospedagem, domínio e lançamento continuam pendentes. A Fase 14 não foi iniciada.
+
+## Consolidação de ambientes Docker
+
+O `compose.yaml` da raiz é o ambiente local padrão e inicia PostgreSQL, Mailpit, backend e frontend com `docker compose up -d`. O banco local usa o volume persistente `perfumestore_perfumestore-postgres-data` e o storage de imagens local continua em `backend/data/catalog-images`.
+
+A causa do erro `28P01` observado na homologação foi comprovada: o volume da Fase 13 continha o banco `perfumestore_phase13` e o role `phase13_user`, enquanto o container `app` antigo havia sido criado com `perfumestore_local/perfumestore` a partir de configuração local stale. O app foi recriado somente com `--force-recreate` e o arquivo `phase13-acceptance.env.example`; o PostgreSQL não foi recriado, nenhuma senha foi alterada e o Flyway validou o schema V10 sem nova migration.
+
+Os ambientes de desenvolvimento, homologação e produção estão documentados em `Docs/infraestrutura/01-ambientes-docker.md`. O template de produção não inclui PostgreSQL local, Mailpit, frete sintético ou PaymentProvider MOCK. Compose e volumes históricos permanecem preservados para reprodução das fases anteriores.

@@ -1,0 +1,42 @@
+services:
+  app:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must reference a reviewed image}
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:?SPRING_DATASOURCE_URL must be provided externally}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:?SPRING_DATASOURCE_USERNAME must be provided externally}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?SPRING_DATASOURCE_PASSWORD must be provided externally}
+      SERVER_PORT: 8080
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS must be explicit}
+      CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_SAME_SITE: ${SESSION_COOKIE_SAME_SITE:-Lax}
+      CSRF_COOKIE_SECURE: "true"
+      CSRF_COOKIE_SAME_SITE: ${CSRF_COOKIE_SAME_SITE:-Lax}
+      CART_COOKIE_SECURE: "true"
+      CART_COOKIE_SAME_SITE: ${CART_COOKIE_SAME_SITE:-Lax}
+      CATALOG_IMAGE_STORAGE_ROOT: /app/data/catalog-images
+      PAYMENT_ENABLED: ${PAYMENT_ENABLED:-false}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-}
+      SHIPPING_ENABLED: ${SHIPPING_ENABLED:-false}
+      SHIPPING_SYNTHETIC: "false"
+      NOTIFICATION_ENABLED: ${NOTIFICATION_ENABLED:-false}
+      NOTIFICATION_DISPATCH_ENABLED: ${NOTIFICATION_DISPATCH_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST:?MAIL_HOST must be provided externally}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:?MAIL_USERNAME must be provided externally}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?MAIL_PASSWORD must be provided externally}
+      MAIL_FROM: ${MAIL_FROM:?MAIL_FROM must be provided externally}
+    ports:
+      - "127.0.0.1:${PRODUCTION_BACKEND_PORT:-8080}:8080"
+    volumes:
+      - production-images:/app/data/catalog-images
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+volumes:
+  production-images:

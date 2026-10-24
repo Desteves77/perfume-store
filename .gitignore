@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 !.env.catalog-acceptance.example
+infra/env/*.env
+infra/env/*.local
 
 # Java/Maven build output
 backend/target/
