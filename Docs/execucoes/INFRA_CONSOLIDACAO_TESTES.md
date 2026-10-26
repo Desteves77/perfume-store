@@ -1,5 +1,30 @@
 # Testes da consolidacao de infraestrutura
 
+## Validacao complementar executada em 26/10/2026
+
+| Area | Comando/ambiente | Resultado |
+|---|---|---|
+| Docker daemon | Docker Desktop 29.5.3 | Iniciado sem alteracao de volumes |
+| Compose local | `docker compose config --quiet` e `docker compose up -d` | Aprovado; servicos saudaveis |
+| Compose producao | `docker compose -f infra/compose/production.yaml --env-file infra/env/production.env.example config --quiet` | Aprovado; template sem PostgreSQL/Mailpit/MOCK |
+| HTTPS | `https://localhost:19680` | Readiness, frontend e catalogo: HTTP 200 |
+| Playwright | `FRONTEND_E2E_URL=https://localhost:19680; CI=1; node node_modules/playwright/cli.js test` | 5/5 aprovados, 43,6 s |
+| Frontend | Node 24 Alpine, `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` | TypeScript/ESLint aprovados; Vitest 2/2; 22 rotas |
+| Backend | Java 17, `mvnw.cmd --batch-mode --no-transfer-progress clean verify` | 82 testes; 0 falhas; 0 erros; 0 ignorados; BUILD SUCCESS |
+| Flyway/persistencia | consultas read-only nos bancos local e de homologacao | V10; 2 e 40 usuarios, respectivamente |
+| Seguranca | fluxos Playwright e `ProductionProfileIsolationIntegrationTest` | CSRF/isolamento aprovados; perfil prod sem MOCK |
+
+### Falhas e reexecucoes
+
+- O daemon Docker estava parado; foi iniciado e os dois ambientes foram levantados com `up -d`, sem `down -v`.
+- O primeiro CLI Playwright falhou por `utilsBundle` ausente em `node_modules` parcial. `npm ci` no Windows permaneceu lento; uma instalacao limpa Node 24 em container temporario resolveu o problema. O Chromium 1187 do cache local foi reutilizado.
+- A primeira copia completa de `node_modules` para Windows falhou em symlinks por privilegio do sistema. Isso nao afetou o projeto versionado; a execucao final ocorreu dentro do container isolado e passou.
+- A primeira consulta SQL de homologacao usou um role presumido inexistente. O role real foi lido do arquivo de ambiente sem imprimir senha, e a consulta read-only corrigida confirmou V10 e 40 usuarios.
+
+### Cobertura
+
+Os 5 testes Playwright foram executados contra o backend real HTTPS e nao contra mocks de API. O backend utilizou PostgreSQL real via Testcontainers no `clean verify`. Nenhum banco ou volume historico foi limpo.
+
 ## Resultados aprovados
 
 | Area | Evidencia | Resultado |

@@ -1,5 +1,37 @@
 # Consolidacao de ambientes e infraestrutura Docker
 
+## Validacao complementar — homologacao E2E
+
+### Baseline e diagnostico
+
+- HEAD de entrada: `f0687abbb83a137751331369d8d44c7960eec1e6`, branch `main`, arvore limpa e sem remotes.
+- Docker daemon inicialmente indisponivel; Docker Desktop foi iniciado sem modificar volumes.
+- A configuracao Playwright usa `FRONTEND_E2E_URL`; o cache local continha Chromium 1187.
+- A primeira tentativa direta falhou porque a instalacao host de `node_modules` estava incompleta e o CLI nao encontrava `utilsBundle`. `npm ci` no Windows permaneceu lento. A instalacao limpa em container Node 24 foi concluida e os testes passaram.
+- Nao houve alteracao de frontend, backend, migrations ou Compose nesta validacao.
+
+### Ambiente e evidencias
+
+- Compose local: frontend `3100`, API `18081`, PostgreSQL `54329`, Mailpit `1025/8025`; todos saudaveis.
+- Homologacao: Caddy HTTPS `19680`, redirect HTTP `19681`, PostgreSQL `56610`, Mailpit `11435/18635`; app, frontend, PostgreSQL e Mailpit saudaveis.
+- Frontend, API de catalogo e readiness local/HTTPS responderam `200`.
+- Banco local: migration mais recente `10`, 2 usuarios.
+- Banco de homologacao: migration mais recente `10`, 40 usuarios sinteticos.
+
+### Homologacao Playwright
+
+Com `FRONTEND_E2E_URL=https://localhost:19680` e `CI=1`, a suite existente executou 5 testes em 2 workers: `5 passed` em 43,6 s. A cobertura efetiva incluiu loja publica, carrinho anonimo, cadastro/login, merge, endereco, frete, checkout, pagamento MOCK autorizado, CSRF, historico, ADMIN, catalogo/estoque, separacao/envio/entrega, reembolso, devolucao/inspecao/reposicao, notificacoes, recuperacao de senha, responsividade e isolamento entre clientes.
+
+### Regressao final
+
+- Frontend em container Node 24 limpo: typecheck aprovado, ESLint aprovado, Vitest 2/2 aprovado e build Next.js aprovado com 22 rotas.
+- Backend com Java 17.0.16 e Maven Wrapper: `clean verify`, 82 testes, 0 falhas, 0 erros, 0 ignorados, `BUILD SUCCESS`.
+- Compose local e template de producao passaram `config --quiet`; readiness e endpoints principais permaneceram 200.
+
+### Preservacao e estado final
+
+O container temporario `perfumestore-e2e-deps` foi removido ao final. Nenhum container historico, banco, backup, imagem persistida ou volume foi removido. O banco local e o banco de homologacao continuaram disponiveis. A validacao complementar encerra formalmente a consolidacao de infraestrutura; nao houve push, deploy ou liberacao comercial.
+
 ## Baseline
 
 - Diretorio: `C:\Users\User\Desktop\Ecommerce PerfumeStore`.

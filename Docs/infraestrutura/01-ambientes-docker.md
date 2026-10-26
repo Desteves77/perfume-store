@@ -1,5 +1,13 @@
 # Ambientes Docker do PerfumeStore
 
+## Validação complementar da homologação E2E
+
+Em 26/10/2026, o ambiente consolidado foi revalidado sem recriar bancos ou remover volumes. O Docker Desktop foi iniciado quando o daemon estava parado; depois, o Compose local e o Compose de homologação foram executados com `up -d`.
+
+O ambiente HTTPS ficou acessível em `https://localhost:19680`. Frontend, API de catálogo e readiness responderam HTTP 200. A suíte Playwright executou 5 testes com Chromium 1187 reutilizado do cache local. O fluxo cobriu CUSTOMER, ADMIN, checkout MOCK autorizado, CSRF, recuperação de senha, pós-venda, notificações e isolamento.
+
+O problema anterior não era indisponibilidade do Chromium: `node_modules` no Windows estava incompleto e o CLI falhava ao carregar `utilsBundle`. `npm ci` no host permaneceu lento; a instalação foi concluída em um container Node 24 temporário e o Playwright passou. O container temporário foi removido ao final; os serviços e volumes do projeto permaneceram preservados.
+
 ## Estrutura final
 
 O caminho padrão é o Compose da raiz:

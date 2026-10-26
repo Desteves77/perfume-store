@@ -1,5 +1,11 @@
 # Frontend — testes e homologação
 
+## Validação complementar da infraestrutura consolidada
+
+A suíte foi reexecutada após a consolidação, contra `https://localhost:19680`, com backend, PostgreSQL, Caddy e Mailpit reais do ambiente isolado. Resultado: 5/5 testes Playwright aprovados. O Chromium 1187 já presente no cache foi reutilizado; não houve dependência de imagem Docker Playwright.
+
+O preparo das dependências frontend foi feito em Node 24 isolado. `npm run typecheck`, `npm run lint`, `npm test` (2/2) e `npm run build` (22 rotas) passaram. A regressão backend com Java 17 passou com 82 testes, sem falhas, erros ou ignorados. O E2E é uma validação técnica de homologação e não representa pagamento, SMTP ou operação comercial reais.
+
 Comandos do frontend:
 
 ```powershell

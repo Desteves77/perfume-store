@@ -1,5 +1,13 @@
 # PerfumeStore — status do projeto
 
+## Validação complementar da consolidação
+
+Em 26/10/2026, a infraestrutura consolidada foi revalidada com Docker local e homologação HTTPS. O Chromium 1187 em cache foi reutilizado e a suíte Playwright executou 5/5 testes contra `https://localhost:19680`, cobrindo loja pública, CUSTOMER, ADMIN, checkout MOCK autorizado, CSRF, recuperação de senha, pós-venda, notificações e isolamento entre clientes.
+
+O frontend passou typecheck, ESLint, Vitest (2/2) e build Next.js (22 rotas) em instalação limpa Node 24. O backend passou `clean verify` com 82 testes, 0 falhas, 0 erros e 0 ignorados em PostgreSQL 18.6 via Testcontainers. Readiness local e HTTPS responderam 200, e os bancos local e de homologação permaneceram na V10.
+
+O bloqueio anterior do Playwright foi operacional: a instalação Windows estava incompleta e faltava `utilsBundle`; o Chromium local já existia. As dependências foram preparadas em container Node 24 isolado e os testes foram executados sem alterar código-fonte. Nenhum volume histórico foi removido. Pagamento real, SMTP real, frete comercial e operação comercial continuam fora do escopo.
+
 ## Atualização — Fase 13
 
 Frontend MVP implementado em `frontend/` com loja pública, autenticação, catálogo, carrinho, endereços, frete, checkout, pedidos, área do cliente e painel ADMIN. Typecheck, lint, testes Vitest, build Next.js e smoke Playwright foram executados; a integração E2E pública também consultou o catálogo do backend da homologação HTTPS.
