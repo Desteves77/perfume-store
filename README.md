@@ -1,5 +1,27 @@
 # PerfumeStore
 
+## Repositório GitHub
+
+Repositório oficial: `https://github.com/Desteves77/perfume-store`
+
+A branch principal é `main`. Para clonar:
+
+```powershell
+git clone https://github.com/Desteves77/perfume-store.git
+cd perfume-store
+```
+
+Para conferir o estado e publicar alterações:
+
+```powershell
+git status
+git add <arquivos-especificos>
+git commit -m "mensagem descritiva"
+git push
+```
+
+Nunca versione `.env` reais, credenciais, tokens, chaves privadas, backups, dumps, `node_modules`, `.next` ou resultados temporários de testes. Use os arquivos `.example` como referência e mantenha os valores reais fora do Git. O histórico antigo da `main` remota foi preservado na branch `backup/github-main-anterior`.
+
 ## Execução local padrão
 
 Depois de copiar `.env.example` para `.env`, o comando principal para abrir a loja local é:
